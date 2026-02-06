@@ -15,7 +15,8 @@ import TransactionHistory from './components/TransactionHistory';
 import Sidebar from './components/Sidebar';
 import QuickInvestButton from './components/QuickInvestButton';
 import CoinModal from './components/CoinModal';
-
+import { NavLink } from 'react-router-dom';
+import AnimatedNumber  from './components/AnimatedNumber';
 
 
 

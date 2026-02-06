@@ -1,0 +1,49 @@
+[1mdiff --git a/README.md b/README.md[m
+[1mnew file mode 100644[m
+[1mindex 0000000..688ac6b[m
+[1m--- /dev/null[m
+[1m+++ b/README.md[m
+[36m@@ -0,0 +1,43 @@[m
+[32m+[m[32m# Growfund Dashboard[m
+[32m+[m
+[32m+[m[32mGrowfund Dashboard is a modern React-based investment dashboard designed to manage user onboarding, investments, deposits, and portfolio insights. It serves as the authenticated area of the Growfund platform, working alongside the main marketing website.[m
+[32m+[m
+[32m+[m[32m---[m
+[32m+[m
+[32m+[m[32m## 🚀 Features[m
+[32m+[m
+[32m+[m[32m- 🔐 User Authentication (Register & Login)[m
+[32m+[m[32m- 📊 Investment Dashboard[m
+[32m+[m[32m- 💰 Deposit & Transaction Tracking[m
+[32m+[m[32m- 📈 Portfolio Overview[m
+[32m+[m[32m- 🧭 User Onboarding Flow[m
+[32m+[m[32m- 🎨 Modern UI with Tailwind CSS[m
+[32m+[m[32m- ⚡ Fast development using Vite[m
+[32m+[m
+[32m+[m[32m---[m
+[32m+[m
+[32m+[m[32m## 🏗️ Tech Stack[m
+[32m+[m
+[32m+[m[32m- **Frontend:** React + Vite[m
+[32m+[m[32m- **Styling:** Tailwind CSS[m
+[32m+[m[32m- **Routing:** React Router[m
+[32m+[m[32m- **State Management:** Context API[m
+[32m+[m[32m- **Auth Integration:** API-based (JWT / Session-ready)[m
+[32m+[m[32m- **Package Manager:** npm[m
+[32m+[m
+[32m+[m[32m---[m
+[32m+[m
+[32m+[m[32m## ⚙️ Getting Started (Local Development)[m
+[32m+[m
+[32m+[m[32m### 1️⃣ Clone the repository[m
+[32m+[m[32m```bash[m
+[32m+[m[32mgit clone https://github.com/RianCole001/Growfund-Dashboard.git<img width="1366" height="686" alt="investment plans" src="https://github.com/user-attachments/assets/02824688-43a8-483d-82d7-efa80008359d" />[m
+[32m+[m
+[32m+[m[32mcd Growfund-Dashboard[m
+[32m+[m[32mnpm install[m
+[32m+[m
+[32m+[m
+[32m+[m[32m---[m
+[32m+[m
+[32m+[m[32m## 📂 Project Structure[m
+[32m+[m
