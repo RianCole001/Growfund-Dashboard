@@ -18,7 +18,8 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
       setEditing(true);
       if (typeof onOpenHandled === 'function') onOpenHandled();
     }
-  }, [openEdit, onOpenHandled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openEdit]);
 
   const startEdit = () => setEditing(true);
   const cancelEdit = () => {
