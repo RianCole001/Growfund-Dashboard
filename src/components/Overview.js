@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import AnimatedNumber from './AnimatedNumber';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Overview({ balance, investments, prices, transactions = [], loading = false, onNavigate }) {
   const totalInvested = investments.reduce((s, i) => s + (i.amount || 0), 0);
@@ -29,17 +28,17 @@ export default function Overview({ balance, investments, prices, transactions = 
   }).sort((a, b) => b.currentValue - a.currentValue);
 
   const currentCryptoValue = holdings.reduce((s, h) => s + (h.currentValue || 0), 0);
-  const totalPortfolio = balance + currentCryptoValue;
-  const totalProfit = currentCryptoValue - totalInvested;
+  // const totalPortfolio = balance + currentCryptoValue;
+  // const totalProfit = currentCryptoValue - totalInvested;
 
-  const allocation = (() => {
-    const map = {};
-    investments.forEach((i) => {
-      const key = i.plan === 'Real Estate' || i.asset ? 'Real Estate' : (i.coin ? 'Crypto' : 'Other');
-      map[key] = (map[key] || 0) + (i.amount || 0);
-    });
-    return Object.keys(map).map((k) => ({ name: k, value: map[k] }));
-  })();
+  // const allocation = (() => {
+  //   const map = {};
+  //   investments.forEach((i) => {
+  //     const key = i.plan === 'Real Estate' || i.asset ? 'Real Estate' : (i.coin ? 'Crypto' : 'Other');
+  //     map[key] = (map[key] || 0) + (i.amount || 0);
+  //   });
+  //   return Object.keys(map).map((k) => ({ name: k, value: map[k] }));
+  // })();
 
   const areaData = investments
     .slice()
@@ -51,7 +50,7 @@ export default function Overview({ balance, investments, prices, transactions = 
       return arr;
     }, []);
 
-  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
+  // const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
 
   // Calculate portfolio change for periods using price change percentages
   const portfolioChange = (periodKey) => {
@@ -75,9 +74,9 @@ export default function Overview({ balance, investments, prices, transactions = 
     return { amount: diff, pct };
   };
 
-  const ch24 = portfolioChange('change24h');
-  const ch7 = portfolioChange('change7d');
-  const ch30 = portfolioChange('change30d');
+  // const ch24 = portfolioChange('change24h');
+  // const ch7 = portfolioChange('change7d');
+  // const ch30 = portfolioChange('change30d');
 
   // compute top movers from prices (global market list)
   const movers = Object.keys(prices || {}).map((k) => ({ symbol: k, price: prices[k].price, change24h: prices[k].change24h, change7d: prices[k].change7d, change30d: prices[k].change30d }));
@@ -86,7 +85,7 @@ export default function Overview({ balance, investments, prices, transactions = 
   const periodKey = timeframe === '24h' ? 'change24h' : timeframe === '7d' ? 'change7d' : 'change30d';
 
   const topGainers = movers.filter(m => m[periodKey] !== undefined).sort((a,b) => (b[periodKey]||0) - (a[periodKey]||0)).slice(0,5);
-  const topLosers = movers.filter(m => m[periodKey] !== undefined).sort((a,b) => (a[periodKey]||0) - (b[periodKey]||0)).slice(0,5);
+  // const topLosers = movers.filter(m => m[periodKey] !== undefined).sort((a,b) => (a[periodKey]||0) - (b[periodKey]||0)).slice(0,5);
 
   const balanceTransactions = transactions.filter(t => t.type === 'Deposit' || t.type === 'Withdraw').slice(0,5);
 

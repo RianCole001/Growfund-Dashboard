@@ -3,7 +3,6 @@ import { Search, Menu, TrendingUp, TrendingDown } from 'lucide-react';
 
 import Profile from './components/Profile';
 import CryptoInvestment from './components/CryptoInvestment';
-import InvestmentPlan from './components/InvestmentPlan';
 import CapitalPlan from './components/CapitalPlan';
 import RealEstate from './components/RealEstate';
 import Balances from './components/Balances';
@@ -15,8 +14,6 @@ import TransactionHistory from './components/TransactionHistory';
 import Sidebar from './components/Sidebar';
 import QuickInvestButton from './components/QuickInvestButton';
 import CoinModal from './components/CoinModal';
-import { NavLink } from 'react-router-dom';
-import AnimatedNumber  from './components/AnimatedNumber';
 
 
 

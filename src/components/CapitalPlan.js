@@ -30,7 +30,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   };
 
   const openHelp = () => setShowHelpModal(true);
-  const closeHelp = () => setShowHelpModal(false); 
+  // const closeHelp = () => setShowHelpModal(false); 
 
   const selectedPlan = plans.find((p) => p.key === selected);
 
