@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Menu, TrendingUp, TrendingDown } from 'lucide-react';
 
 import Profile from './components/Profile';
@@ -46,6 +46,10 @@ export default function App() {
   const [transactions, setTransactions] = useState(storage.get('transactions', []));
   const [auth, setAuth] = useState(storage.get('auth', { loggedIn: false, lastLogin: null }));
   const [profileOpenEdit, setProfileOpenEdit] = useState(false);
+
+  const handleProfileOpenHandled = useCallback(() => {
+    setProfileOpenEdit(false);
+  }, []);
 
   const navigateTo = (p, opts = {}) => { setPageAndPersist(p); if (p === 'Profile' && opts && opts.openEdit) setProfileOpenEdit(true); };
 
@@ -263,7 +267,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {page === 'Profile' && <Profile profile={profile} onSave={handleUpdateProfile} auth={auth} onLogin={handleLogin} onLogout={handleLogout} openEdit={profileOpenEdit} onOpenHandled={() => setProfileOpenEdit(false)} />}
+          {page === 'Profile' && <Profile profile={profile} onSave={handleUpdateProfile} auth={auth} onLogin={handleLogin} onLogout={handleLogout} openEdit={profileOpenEdit} onOpenHandled={handleProfileOpenHandled} />}
           {page === 'Crypto' && <CryptoInvestment onSelectCoin={handleSelectCoin} prices={prices} onViewCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} />}
 
           <QuickInvestButton onClick={() => setPageAndPersist('Capital Appreciation Plan')} />
