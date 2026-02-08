@@ -27,7 +27,7 @@ export default function Overview({ balance, investments, prices, transactions = 
     return { ...h, latest, currentValue, roi };
   }).sort((a, b) => b.currentValue - a.currentValue);
 
-  const currentCryptoValue = holdings.reduce((s, h) => s + (h.currentValue || 0), 0);
+  // const currentCryptoValue = holdings.reduce((s, h) => s + (h.currentValue || 0), 0);
   // const totalPortfolio = balance + currentCryptoValue;
   // const totalProfit = currentCryptoValue - totalInvested;
 
@@ -53,26 +53,26 @@ export default function Overview({ balance, investments, prices, transactions = 
   // const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
 
   // Calculate portfolio change for periods using price change percentages
-  const portfolioChange = (periodKey) => {
-    // periodKey is 'change24h' | 'change7d' | 'change30d'
-    let prevTotal = 0;
-    let currentTotal = 0;
-    holdings.forEach((h) => {
-      if (!h.coin) return; // skip non-crypto assets
-      const p = prices && prices[h.coin] ? prices[h.coin] : null;
-      const pct = p && p[periodKey] ? p[periodKey] : undefined;
-      if (pct === undefined || pct === null) return;
-      const latest = p.price;
-      const prevPrice = latest / (1 + pct / 100);
-      const prevValue = (h.quantity || 0) * prevPrice;
-      const currValue = (h.quantity || 0) * latest;
-      prevTotal += prevValue;
-      currentTotal += currValue;
-    });
-    const diff = currentTotal - prevTotal;
-    const pct = prevTotal ? ((diff / prevTotal) * 100) : 0;
-    return { amount: diff, pct };
-  };
+  // const portfolioChange = (periodKey) => {
+  //   // periodKey is 'change24h' | 'change7d' | 'change30d'
+  //   let prevTotal = 0;
+  //   let currentTotal = 0;
+  //   holdings.forEach((h) => {
+  //     if (!h.coin) return; // skip non-crypto assets
+  //     const p = prices && prices[h.coin] ? prices[h.coin] : null;
+  //     const pct = p && p[periodKey] ? p[periodKey] : undefined;
+  //     if (pct === undefined || pct === null) return;
+  //     const latest = p.price;
+  //     const prevPrice = latest / (1 + pct / 100);
+  //     const prevValue = (h.quantity || 0) * prevPrice;
+  //     const currValue = (h.quantity || 0) * latest;
+  //     prevTotal += prevValue;
+  //     currentTotal += currValue;
+  //   });
+  //   const diff = currentTotal - prevTotal;
+  //   const pct = prevTotal ? ((diff / prevTotal) * 100) : 0;
+  //   return { amount: diff, pct };
+  // };
 
   // const ch24 = portfolioChange('change24h');
   // const ch7 = portfolioChange('change7d');
