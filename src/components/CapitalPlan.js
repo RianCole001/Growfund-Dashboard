@@ -1,13 +1,44 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Bar, BarChart } from 'recharts';
+import { TrendingUp, DollarSign, Calendar, Target, Shield, Zap, Award, Info, X } from 'lucide-react';
 
 const storage = require('../utils/storage').default;
 
 export default function CapitalPlan({ investments = [], balance = 0, onInvest = () => {}, onNotify = () => {} }) {
   const plans = [
-    { key: 'starter', name: 'Starter', rate: 0.05, min: 100, desc: 'Low-risk starter plan to learn and grow your capital steadily.' },
-    { key: 'intermediate', name: 'Intermediate', rate: 0.08, min: 500, desc: 'Balanced plan with higher potential returns for medium-term investors.' },
-    { key: 'advanced', name: 'Advanced', rate: 0.12, min: 2000, desc: 'Aggressive growth plan for experienced investors seeking higher returns.' },
+    { 
+      key: 'starter', 
+      name: 'Starter', 
+      rate: 0.05, 
+      min: 100, 
+      desc: 'Perfect for beginners. Low-risk strategy with steady growth.',
+      icon: Shield,
+      color: 'from-cyan-400 via-blue-500 to-blue-600',
+      badge: '🛡️ Safe',
+      features: ['Low Risk', 'Flexible Terms', 'Easy Exit']
+    },
+    { 
+      key: 'intermediate', 
+      name: 'Intermediate', 
+      rate: 0.08, 
+      min: 500, 
+      desc: 'Balanced approach. Moderate risk with solid returns.',
+      icon: Target,
+      color: 'from-purple-400 via-pink-500 to-purple-600',
+      badge: '⚡ Popular',
+      features: ['Balanced Risk', 'Higher Returns', 'Monthly Reports']
+    },
+    { 
+      key: 'advanced', 
+      name: 'Advanced', 
+      rate: 0.12, 
+      min: 2000, 
+      desc: 'Maximum growth potential. Higher risk, higher reward.',
+      icon: Zap,
+      color: 'from-orange-400 via-red-500 to-pink-600',
+      badge: '🚀 Premium',
+      features: ['High Returns', 'Priority Support', 'Advanced Tools']
+    },
   ];
 
   const [selected, setSelected] = useState(plans[0].key);
@@ -16,6 +47,8 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const [showOnboard, setShowOnboard] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [hoveredPlan, setHoveredPlan] = useState(null);
 
   useEffect(() => {
     const seen = storage.get('seenCapitalOnboarding', false);
@@ -25,28 +58,42 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const dismissOnboard = () => {
     storage.set('seenCapitalOnboarding', true);
     setShowOnboard(false);
-    if (typeof onNotify === 'function') onNotify('Welcome to Capital Appreciation Plan — onboarding dismissed');
+    if (typeof onNotify === 'function') onNotify('Welcome to Capital Appreciation Plan');
   };
 
-  // const openHelp = () => setShowHelpModal(true);
-  // const closeHelp = () => setShowHelpModal(false); 
+  const openHelp = () => setShowHelpModal(true);
+  const closeHelp = () => setShowHelpModal(false); 
 
   const selectedPlan = plans.find((p) => p.key === selected);
+  const Icon = selectedPlan.icon;
 
   const data = useMemo(() => {
     const arr = [];
     let val = Number(amount) || 0;
     for (let y = 0; y <= years; y++) {
-      if (y === 0) arr.push({ year: y, value: Math.round(val) });
+      if (y === 0) arr.push({ year: y, value: Math.round(val), label: `Y${y}`, gain: 0 });
       else {
+        const prevVal = val;
         val = val * (1 + selectedPlan.rate);
-        arr.push({ year: y, value: Math.round(val) });
+        arr.push({ year: y, value: Math.round(val), label: `Y${y}`, gain: Math.round(val - prevVal) });
       }
     }
     return arr;
   }, [amount, years, selectedPlan]);
 
+  const finalValue = data[data.length - 1]?.value || 0;
+  const totalGain = finalValue - amount;
+  const percentageGain = amount > 0 ? ((totalGain / amount) * 100).toFixed(1) : 0;
+
   const openConfirm = (amt, plan) => {
+    if (amt < plan.min) {
+      alert(`Minimum investment for ${plan.name} plan is $${plan.min}`);
+      return;
+    }
+    if (amt > balance) {
+      alert('Insufficient balance');
+      return;
+    }
     const pay = { amount: Number(amt || 0), plan: plan.name, name: `Capital Plan - ${plan.name}`, years };
     setConfirmData(pay);
     setConfirmOpen(true);
@@ -55,122 +102,376 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const doConfirmInvest = () => {
     if (!confirmData) return;
     onInvest({ ...confirmData, date: new Date().toISOString() });
-    if (typeof onNotify === 'function') onNotify(`Confirmed investment $${Number(confirmData.amount).toLocaleString()} in ${confirmData.plan}`);
+    if (typeof onNotify === 'function') onNotify(`Invested $${Number(confirmData.amount).toLocaleString()} in ${confirmData.plan}`);
     setConfirmOpen(false);
     setConfirmData(null);
+    setAmount(1000);
   };
 
   return (
-    <div className="space-y-6 relative">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-blue-400">Capital Appreciation Plan</h2>
-          <p className="text-sm text-gray-400">Choose a plan and simulate how your money could grow over time.</p>
-        </div>
-        <div className="text-right">
-          <div className="text-sm text-gray-300">Available balance</div>
-          <div className="text-lg font-bold">${Math.round(balance).toLocaleString()}</div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 sm:p-8 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center mb-2">
+              <TrendingUp className="w-6 h-6 mr-2" />
+              Capital Appreciation Plan
+            </h2>
+            <p className="text-blue-100 text-sm">Grow your wealth with structured investment strategies</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm px-5 py-3 rounded-lg border border-white/20">
+            <div className="text-xs text-blue-100 mb-1">Available Balance</div>
+            <div className="text-xl sm:text-2xl font-bold text-white">${Math.round(balance).toLocaleString()}</div>
+          </div>
         </div>
       </div>
 
+      {/* Onboarding */}
       {showOnboard && (
-        <div className="bg-blue-600/80 p-4 rounded-lg text-sm text-white">
+        <div className="bg-blue-600 p-4 rounded-lg shadow-lg">
           <div className="flex justify-between items-start">
-            <div>
-              <div className="font-semibold">Getting started</div>
-              <div className="mt-1">This short guide helps you pick a plan and simulate growth. Choose a plan, set your amount & duration, then confirm before investing.</div>
-              <div className="mt-2 text-xs text-blue-100">Need more detail? <button onClick={openHelp} className="underline">Learn more</button></div>
+            <div className="flex-1">
+              <div className="flex items-center mb-2">
+                <Info className="w-5 h-5 mr-2 text-blue-100" />
+                <div className="font-semibold text-white">Getting Started</div>
+              </div>
+              <div className="text-sm text-blue-50 mb-3">
+                Choose your investment strategy, set your goals, and watch your money grow over time.
+              </div>
+              <button onClick={openHelp} className="text-sm font-medium text-blue-100 hover:text-white underline">
+                Learn more about plans →
+              </button>
             </div>
-            <div className="ml-4 flex flex-col space-y-2">
-              <button onClick={dismissOnboard} className="bg-white text-blue-600 px-3 py-1 rounded">Got it</button>
-            </div>
+            <button 
+              onClick={dismissOnboard} 
+              className="ml-4 bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}
 
+      {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {plans.map((p) => (
-          <div key={p.key} className={`bg-gray-800 p-4 rounded-lg ${selected === p.key ? 'ring-2 ring-blue-500' : ''}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-300">{p.name}</div>
-                <div className="text-xl font-bold">{Math.round(p.rate * 100)}% p.a.</div>
+        {plans.map((p) => {
+          const PlanIcon = p.icon;
+          const isSelected = selected === p.key;
+          const isHovered = hoveredPlan === p.key;
+          
+          return (
+            <div 
+              key={p.key} 
+              onClick={() => setSelected(p.key)}
+              onMouseEnter={() => setHoveredPlan(p.key)}
+              onMouseLeave={() => setHoveredPlan(null)}
+              className={`relative bg-gray-800 rounded-lg p-5 cursor-pointer transition-all ${
+                isSelected 
+                  ? 'ring-2 ring-blue-500 shadow-lg' 
+                  : 'hover:shadow-md hover:bg-gray-750'
+              }`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-0 ${isSelected ? 'opacity-5' : ''} rounded-lg transition-opacity`}></div>
+              
+              <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                {p.badge}
               </div>
-              <div className="text-sm text-gray-400">Min ${p.min}</div>
+
+              <div className="relative z-10">
+                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${p.color} flex items-center justify-center mb-3 shadow-md`}>
+                  <PlanIcon className="w-6 h-6 text-white" />
+                </div>
+                
+                <div className="mb-3">
+                  <h3 className="text-lg font-bold text-white mb-1">{p.name}</h3>
+                  <div className="text-3xl font-bold text-blue-400">
+                    {Math.round(p.rate * 100)}%
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Annual Return</div>
+                </div>
+
+                <p className="text-sm text-gray-400 mb-4">{p.desc}</p>
+
+                <div className="space-y-2 mb-4">
+                  {p.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-center text-xs text-gray-300">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></div>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+                  <span className="text-xs text-gray-500">Min. ${p.min}</span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); openConfirm(amount, p); }}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                      isSelected 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {isSelected ? 'Invest Now' : 'Select'}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-gray-300 mt-3">{p.desc}</div>
-            <ul className="text-xs text-gray-400 mt-3 space-y-1">
-              <li>1. Set your starting capital</li>
-              <li>2. Choose duration & contributions</li>
-              <li>3. Monitor and adjust</li>
-            </ul>
-            <div className="mt-4 flex items-center justify-between">
-              <button onClick={() => setSelected(p.key)} className={`px-3 py-1 rounded ${selected === p.key ? 'bg-blue-600' : 'bg-gray-700'}`}>Select</button>
-              <button onClick={() => { setSelected(p.key); openConfirm(amount, p); }} className="px-3 py-1 rounded bg-green-600">Invest Now</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="bg-gray-800 p-4 rounded-lg">
-        <h3 className="text-md font-semibold mb-3 text-blue-400">Growth Projection</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="col-span-2">
-            <div className="h-64">
+      {/* Growth Visualization */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-semibold text-white flex items-center mb-2">
+              <Icon className="w-5 h-5 mr-2 text-blue-400" />
+              Growth Projection
+            </h3>
+            <p className="text-sm text-gray-400">Investment growth with {selectedPlan.name} Plan</p>
+          </div>
+          <div className="mt-4 sm:mt-0 bg-gray-700 px-5 py-3 rounded-lg border border-gray-600">
+            <div className="text-xs text-gray-400 mb-1">Projected Value</div>
+            <div className="text-xl font-bold text-white">${finalValue.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-3">
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                <AreaChart data={data}>
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.6}/>
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="year" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
-                  <Line type="monotone" dataKey="value" stroke="#34D399" strokeWidth={2} dot={{ r: 2 }} />
-                </LineChart>
+                  <XAxis dataKey="label" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                  <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: '2px solid #3B82F6', 
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+                    }}
+                    formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Value']} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#3B82F6" 
+                    strokeWidth={4}
+                    fill="url(#colorValue)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.slice(1)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="label" stroke="#9CA3AF" style={{ fontSize: '10px' }} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Yearly Gain']} 
+                  />
+                  <Bar dataKey="gain" fill="#10B981" radius={[8, 8, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div>
-            <div className="bg-gray-700 p-4 rounded">
-              <label className="block text-sm text-gray-300">Starting amount</label>
-              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-2 w-full bg-gray-800 rounded p-2" />
-
-              <label className="block text-sm text-gray-300 mt-3">Duration (years)</label>
-              <input type="range" min={1} max={30} value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full mt-2" />
-              <div className="text-sm text-gray-300 mt-1">{years} year{years > 1 ? 's' : ''}</div>
-
-              <label className="block text-sm text-gray-300 mt-3">Selected plan</label>
-              <div className="text-sm font-semibold mt-1">{selectedPlan.name} • {Math.round(selectedPlan.rate * 100)}% p.a.</div>
-
-              <div className="mt-4">
-                <button onClick={() => openConfirm(amount, selectedPlan)} className="w-full bg-blue-600 px-3 py-2 rounded">Invest ${Math.round(amount)}</button>
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
+              <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
+                <DollarSign className="w-4 h-4 mr-2 text-green-400" />
+                Investment Amount
+              </label>
+              <input 
+                type="number" 
+                value={amount} 
+                onChange={(e) => setAmount(Number(e.target.value))} 
+                className="w-full bg-gray-800 rounded-xl p-4 text-2xl font-bold text-center focus:ring-4 focus:ring-blue-500 focus:outline-none transition-all" 
+              />
+              <div className="flex justify-between mt-3 text-xs">
+                <span className="text-gray-500">Min: ${selectedPlan.min}</span>
+                <span className="text-gray-500">Max: ${balance.toLocaleString()}</span>
               </div>
-
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                {[25, 50, 75, 100].map((percent) => (
+                  <button
+                    key={percent}
+                    onClick={() => setAmount(Math.round(balance * percent / 100))}
+                    className="bg-gray-600 hover:bg-blue-600 py-2 rounded-lg text-xs font-bold transition-all transform hover:scale-105"
+                  >
+                    {percent}%
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
+              <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
+                <Calendar className="w-4 h-4 mr-2 text-purple-400" />
+                Investment Period
+              </label>
+              <input 
+                type="range" 
+                min={1} 
+                max={30} 
+                value={years} 
+                onChange={(e) => setYears(Number(e.target.value))} 
+                className="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600" 
+              />
+              <div className="flex justify-between mt-3">
+                <span className="text-2xl font-black text-purple-400">{years}</span>
+                <span className="text-sm text-gray-400">{years === 1 ? 'Year' : 'Years'}</span>
+              </div>
+            </div>
+
+            <div className="bg-gray-700 border border-gray-600 p-5 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-400">Expected Profit</span>
+                <Award className="w-5 h-5 text-green-400" />
+              </div>
+              <div className="text-2xl font-bold text-green-400 mb-1">
+                +${totalGain.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-400">
+                {percentageGain}% growth over {years} {years === 1 ? 'year' : 'years'}
+              </div>
+            </div>
+
+            <button 
+              onClick={() => openConfirm(amount, selectedPlan)} 
+              className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-4 rounded-lg font-semibold text-lg transition-colors"
+            >
+              Invest ${Math.round(amount).toLocaleString()}
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="text-sm text-gray-400">This is a simulation for illustrative purposes only. Actual returns may vary.</div>
+      {/* Help Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-3xl w-full shadow-xl border border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white flex items-center">
+                <Info className="w-5 h-5 mr-2 text-blue-400" />
+                Investment Plans Guide
+              </h3>
+              <button onClick={closeHelp} className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {plans.map((plan) => {
+                const PlanIcon = plan.icon;
+                return (
+                  <div key={plan.key} className="bg-gray-700 p-5 rounded-lg border border-gray-600">
+                    <div className="flex items-start space-x-4">
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${plan.color} flex items-center justify-center flex-shrink-0`}>
+                        <PlanIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-lg text-white">{plan.name}</h4>
+                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded font-medium">{plan.badge}</span>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-3">{plan.desc}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs bg-gray-600 text-white px-3 py-1 rounded font-medium">
+                            {Math.round(plan.rate * 100)}% Annual Return
+                          </span>
+                          <span className="text-xs bg-gray-600 text-gray-300 px-3 py-1 rounded">
+                            Min. ${plan.min}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-      {confirmOpen && confirmData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-800 rounded-lg p-6 w-96 text-white">
-            <h3 className="text-lg font-semibold mb-2">Confirm Investment</h3>
-            <div className="text-sm text-gray-300 mb-4">Plan: <strong className="text-white">{confirmData.plan}</strong></div>
-            <div className="text-sm text-gray-300">Amount: <strong className="text-white">${Number(confirmData.amount).toLocaleString()}</strong></div>
-            <div className="text-sm text-gray-300">Duration: <strong className="text-white">{confirmData.years} year{confirmData.years > 1 ? 's' : ''}</strong></div>
-            <div className="text-sm text-gray-300 mt-3">Projected value: <strong className="text-white">${(data[data.length - 1] || {}).value ? Number(data[data.length - 1].value).toLocaleString() : '-'}</strong></div>
-            <div className={`text-sm mt-1 ${(((data[data.length - 1] || {}).value || 0) - (confirmData.amount || 0)) >= 0 ? 'text-green-400' : 'text-red-400'}`}>Estimated profit: <strong className="text-white">${Math.abs(((data[data.length - 1] || {}).value || 0) - (confirmData.amount || 0)).toLocaleString()}</strong></div>
-
-            <div className="mt-6 flex justify-end space-x-2">
-              <button onClick={() => { setConfirmOpen(false); setConfirmData(null); }} className="px-3 py-1 rounded bg-gray-700">Cancel</button>
-              <button onClick={doConfirmInvest} className="px-3 py-1 rounded bg-green-600">Confirm</button>
+            <div className="mt-6 bg-blue-600/10 border border-blue-600/30 p-4 rounded-lg">
+              <p className="text-sm text-gray-300">
+                <strong className="text-white">Tip:</strong> Start with the Starter plan and scale up as you gain confidence.
+              </p>
             </div>
           </div>
         </div>
       )}
 
+      {/* Confirmation Modal */}
+      {confirmOpen && confirmData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-700">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <DollarSign className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Confirm Investment</h3>
+              <p className="text-sm text-gray-400">Review your investment details</p>
+            </div>
+            
+            <div className="space-y-3 mb-6 bg-gray-700 p-4 rounded-lg">
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Plan</span>
+                <span className="font-semibold text-white">{confirmData.plan}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Amount</span>
+                <span className="font-bold text-xl text-white">${Number(confirmData.amount).toLocaleString()}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Duration</span>
+                <span className="font-semibold text-white">{confirmData.years} {confirmData.years === 1 ? 'Year' : 'Years'}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Projected Value</span>
+                <span className="font-semibold text-green-400">${finalValue.toLocaleString()}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Expected Gain</span>
+                <span className="font-bold text-lg text-green-400">+${totalGain.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button 
+                onClick={() => { setConfirmOpen(false); setConfirmData(null); }} 
+                className="flex-1 px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={doConfirmInvest} 
+                className="flex-1 px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 font-semibold transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="text-center bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <p className="text-xs text-gray-400">
+          <span className="font-medium">Disclaimer:</span> Projections are for illustrative purposes. Actual returns may vary.
+        </p>
+      </div>
     </div>
   );
 }
-

@@ -14,6 +14,8 @@ import TransactionHistory from './components/TransactionHistory';
 import Sidebar from './components/Sidebar';
 import QuickInvestButton from './components/QuickInvestButton';
 import CoinModal from './components/CoinModal';
+import TradeNow from './components/TradeNow';
+import Earn from './components/Earn';
 
 
 
@@ -211,32 +213,81 @@ export default function App() {
 
   return (
     <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
-      <header className="bg-gray-800 p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-6">
-          <span className="text-2xl font-bold text-blue-400">GrowFund</span>
-          <nav className="hidden md:flex space-x-4">
-            {['Dashboard', 'Profile', 'Crypto', 'Capital Appreciation Plan', 'Real Estate', 'Balances', 'Deposits', 'Withdrawals', 'Transactions'].map((item) => (
-              <button key={item} onClick={() => setPageAndPersist(item)} className={`text-gray-300 hover:text-blue-400 transition-colors duration-200 ${page === item ? 'text-blue-300 font-semibold' : ''}`}>{item}</button>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <input type="text" placeholder="Search" className="bg-gray-700 text-white rounded-full py-2 px-4 pl-10 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200" />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      {/* Solid Fixed Navigation Bar */}
+      <header className="bg-gray-800 shadow-lg sticky top-0 z-50 border-b border-gray-700">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo and Desktop Nav */}
+            <div className="flex items-center space-x-6">
+              <span className="text-2xl font-bold text-blue-400 flex items-center">
+                <TrendingUp className="w-6 h-6 mr-2" />
+                GrowFund
+              </span>
+              <nav className="hidden lg:flex space-x-1">
+                {['Dashboard', 'Profile', 'Crypto', 'Trade Now', 'Earn', 'Capital Appreciation Plan', 'Real Estate', 'Balances', 'Deposits', 'Withdrawals', 'Transactions'].map((item) => (
+                  <button 
+                    key={item} 
+                    onClick={() => setPageAndPersist(item)} 
+                    className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                      page === item 
+                        ? 'bg-blue-600 text-white font-semibold shadow-md' 
+                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Right Side - Search, Balance, Menu */}
+            <div className="flex items-center space-x-3">
+              {/* Search - Hidden on small screens */}
+              <div className="relative hidden md:block">
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  className="bg-gray-700 text-white rounded-lg py-2 px-4 pl-10 w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200" 
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              </div>
+
+              {/* Balance Display */}
+              <div className="hidden sm:flex items-center bg-gray-700 px-4 py-2 rounded-lg">
+                <span className="text-xs text-gray-400 mr-2">Balance:</span>
+                <span className="text-sm font-bold text-green-400">${balance.toLocaleString()}</span>
+              </div>
+
+              {/* Price Update Status */}
+              <div className="hidden md:flex items-center">
+                {loadingPrices ? (
+                  <div className="flex items-center text-xs text-yellow-400">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-400 mr-2"></div>
+                    Updating...
+                  </div>
+                ) : (
+                  <div className="text-xs text-green-400 flex items-center">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                    Live
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Menu Button */}
+              <button 
+                onClick={() => setSidebarOpen(true)} 
+                className="lg:hidden bg-blue-600 rounded-lg p-2 hover:bg-blue-700 transition-colors duration-200 shadow-md"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          <div className="text-sm text-gray-300 hidden sm:block">Balance: <strong className="text-white">${balance.toLocaleString()}</strong></div>
-          <div className="flex items-center space-x-2">
-            {loadingPrices ? (
-              <div className="text-xs text-gray-300">Updating prices...</div>
-            ) : (
-              <div className="text-xs text-gray-300">Prices updated</div>
-            )}
-            <button onClick={() => setSidebarOpen(true)} className="bg-blue-600 rounded-full p-2 hover:bg-blue-700 transition-colors duration-200 md:hidden">
-              <Menu className="w-5 h-5" />
-            </button>
+
+          {/* Mobile Balance Bar */}
+          <div className="sm:hidden mt-2 flex items-center justify-between bg-gray-700 px-3 py-2 rounded-lg">
+            <span className="text-xs text-gray-400">Balance:</span>
+            <span className="text-sm font-bold text-green-400">${balance.toLocaleString()}</span>
           </div>
-          <div className="text-sm text-gray-300 hidden md:block">Balance: <strong className="text-white">${balance.toLocaleString()}</strong></div>
         </div>
       </header>
 
@@ -248,6 +299,12 @@ export default function App() {
 
           {page === 'Crypto' && <CryptoInvestment onSelectCoin={handleSelectCoin} prices={prices} loading={loadingPrices} onViewCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} />}
 
+          {page === 'Trade Now' && <TradeNow balance={balance} onTrade={handleInvest} prices={prices} />}
+
+          {page === 'Earn' && <Earn userEmail={profile.email} onNotify={addToast} />}
+
+          {page === 'Profile' && <Profile profile={profile} onSave={handleUpdateProfile} auth={auth} onLogin={handleLogin} onLogout={handleLogout} openEdit={profileOpenEdit} onOpenHandled={handleProfileOpenHandled} />}
+
           <QuickInvestButton onClick={() => setPageAndPersist('Capital Appreciation Plan')} />
 
           {typeof coinModalOpen !== 'undefined' && coinModalOpen && (
@@ -256,21 +313,17 @@ export default function App() {
 
           {/* Mobile slide-over sidebar */}
           {sidebarOpen && (
-            <div className="fixed inset-0 z-40">
-              <div onClick={() => setSidebarOpen(false)} className="absolute inset-0 bg-black opacity-40" />
-              <div className="absolute left-0 top-0 h-full w-64 bg-gray-800 p-4 overflow-auto">
-                <button onClick={() => setSidebarOpen(false)} className="mb-4 bg-gray-700 px-3 py-2 rounded">Close</button>
-                <Sidebar page={page} setPage={setPageAndPersist} onClose={() => setSidebarOpen(false)} />
+            <div className="fixed inset-0 z-50">
+              <div 
+                onClick={() => setSidebarOpen(false)} 
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+              />
+              <div className="absolute left-0 top-0 h-full w-72 bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out">
+                <div className="p-4 h-full">
+                  <Sidebar page={page} setPage={setPageAndPersist} onClose={() => setSidebarOpen(false)} />
+                </div>
               </div>
             </div>
-          )}
-          {page === 'Profile' && <Profile profile={profile} onSave={handleUpdateProfile} auth={auth} onLogin={handleLogin} onLogout={handleLogout} openEdit={profileOpenEdit} onOpenHandled={handleProfileOpenHandled} />}
-          {page === 'Crypto' && <CryptoInvestment onSelectCoin={handleSelectCoin} prices={prices} onViewCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} />}
-
-          <QuickInvestButton onClick={() => setPageAndPersist('Capital Appreciation Plan')} />
-
-          {typeof coinModalOpen !== 'undefined' && coinModalOpen && (
-            <CoinModal coin={selectedCoin} onClose={() => setCoinModalOpen(false)} onInvest={(coin) => { handleSelectCoin(coin); }} />
           )}
           {page === 'Capital Appreciation Plan' && (
             <div className="space-y-4">
