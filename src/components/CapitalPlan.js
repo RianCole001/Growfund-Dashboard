@@ -16,7 +16,6 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const [showOnboard, setShowOnboard] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
-  const [showHelpModal, setShowHelpModal] = useState(false);
 
   useEffect(() => {
     const seen = storage.get('seenCapitalOnboarding', false);
@@ -29,7 +28,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
     if (typeof onNotify === 'function') onNotify('Welcome to Capital Appreciation Plan — onboarding dismissed');
   };
 
-  const openHelp = () => setShowHelpModal(true);
+  // const openHelp = () => setShowHelpModal(true);
   // const closeHelp = () => setShowHelpModal(false); 
 
   const selectedPlan = plans.find((p) => p.key === selected);
