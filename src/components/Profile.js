@@ -18,25 +18,25 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
       setEditing(true);
       if (typeof onOpenHandled === 'function') onOpenHandled();
     }
-  }, [openEdit, onOpenHandled]);
+  }, [openEdit, onOpenHandled]); // ✅ dependency fixed
 
   const startEdit = () => setEditing(true);
   const cancelEdit = () => {
     setEditing(false);
-    setName(profile.name || ''); 
-    setEmail(profile.email || ''); 
-    setPhone(profile.phone || ''); 
-    setLocation(profile.location || ''); 
-    setOccupation(profile.occupation || ''); 
-    setCompany(profile.company || ''); 
-    setWebsite(profile.website || ''); 
-    setBio(profile.bio || ''); 
+    setName(profile.name || '');
+    setEmail(profile.email || '');
+    setPhone(profile.phone || '');
+    setLocation(profile.location || '');
+    setOccupation(profile.occupation || '');
+    setCompany(profile.company || '');
+    setWebsite(profile.website || '');
+    setBio(profile.bio || '');
     setAvatar(profile.avatar || null);
   };
 
   const save = () => {
     const next = { ...profile, name, email, phone, location, occupation, company, website, bio, avatar };
-    onSave && onSave(next);
+    if (onSave) onSave(next);
     setEditing(false);
   };
 
@@ -64,7 +64,7 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
           ) : (
             <button onClick={() => onLogout && onLogout()} className="bg-red-600 px-3 py-1 rounded">Log out</button>
           )}
-          {!editing ? <button onClick={startEdit} className="bg-blue-600 px-3 py-1 rounded">Edit</button> : null}
+          {!editing && <button onClick={startEdit} className="bg-blue-600 px-3 py-1 rounded">Edit</button>}
         </div>
       </div>
 
@@ -91,7 +91,9 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
             <div className="text-sm text-gray-400 text-right">
               <div>{email}</div>
               <div>{phone}</div>
-              {auth && auth.loggedIn && auth.lastLogin && <div className="text-xs text-gray-500">Last login: {new Date(auth.lastLogin).toLocaleString()}</div>}
+              {auth.loggedIn && auth.lastLogin && (
+                <div className="text-xs text-gray-500">Last login: {new Date(auth.lastLogin).toLocaleString()}</div>
+              )}
             </div>
           </div>
 
@@ -145,7 +147,9 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
         </div>
       </div>
 
-      <div className="mt-6 text-sm text-gray-400">Your profile data is stored locally for demo purposes. In a production app you would connect this to your user service with secure storage.</div>
+      <div className="mt-6 text-sm text-gray-400">
+        Your profile data is stored locally for demo purposes. In a production app you would connect this to your user service with secure storage.
+      </div>
     </div>
   );
 }
