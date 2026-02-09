@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Home, User, Bitcoin, TrendingUp, Building, Wallet, ArrowDownCircle, ArrowUpCircle, List, BarChart3, Gift } from 'lucide-react';
+import { X, Home, User, Bitcoin, TrendingUp, Building, Wallet, ArrowDownCircle, ArrowUpCircle, List, BarChart3, Gift, Settings } from 'lucide-react';
 
 export default function Sidebar({ page, setPage, onClose }) {
   const items = [
@@ -13,7 +13,8 @@ export default function Sidebar({ page, setPage, onClose }) {
     { name: 'Balances', icon: Wallet },
     { name: 'Deposits', icon: ArrowDownCircle },
     { name: 'Withdrawals', icon: ArrowUpCircle },
-    { name: 'Transactions', icon: List }
+    { name: 'Transactions', icon: List },
+    { name: 'Settings', icon: Settings }
   ];
 
   return (

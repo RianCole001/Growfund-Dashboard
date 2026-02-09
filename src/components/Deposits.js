@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { CreditCard, DollarSign, Check, Shield, Lock, Plus, Trash2, X, Smartphone, Building, Bitcoin } from 'lucide-react';
 
 export default function Deposits({ onDeposit }) {
   const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState('Bank Cards');
+  const [method, setMethod] = useState('Card');
+  const [step, setStep] = useState(1); // 1: Amount & Method, 2: Payment Details, 3: Confirmation
 
-  // Bank Cards
-  const [cardIssuer, setCardIssuer] = useState('Visa');
+  // Card details
+  const [cardType, setCardType] = useState('');
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCVV, setCardCVV] = useState('');
   const [saveCard, setSaveCard] = useState(false);
   const [savedCards, setSavedCards] = useState([]);
-  const [usingSavedCard, setUsingSavedCard] = useState(false);
-  const [savedCardId, setSavedCardId] = useState('');
+  const [selectedSavedCard, setSelectedSavedCard] = useState(null);
+
+  // PayPal
+  const [paypalEmail, setPaypalEmail] = useState('');
+
+  // Mobile Money
+  const [mobilePhone, setMobilePhone] = useState('');
+  const [mobileProvider, setMobileProvider] = useState('');
+
+  // Bank Transfer
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+
+  // Crypto
+  const [cryptoCoin, setCryptoCoin] = useState('BTC');
+  const [cryptoAddress, setCryptoAddress] = useState('');
 
   useEffect(() => {
     try {
@@ -22,279 +39,717 @@ export default function Deposits({ onDeposit }) {
     } catch (e) {}
   }, []);
 
-  // PayPal
-  const [paypalEmail, setPaypalEmail] = useState('');
-
-  // Mobile money (M-Pesa / MOMO)
-  const [mobilePhone, setMobilePhone] = useState('');
-  const [mobileProvider, setMobileProvider] = useState('');
-
-  // Bank transfer
-  const [bankName, setBankName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [accountName, setAccountName] = useState('');
-
-  // Crypto
-  const [cryptoAddr, setCryptoAddr] = useState('');
-  const [cryptoCoin, setCryptoCoin] = useState('BTC');
-
-  const resetForm = () => {
-    setAmount(''); setCardIssuer('Visa'); setCardName(''); setCardNumber(''); setCardExpiry(''); setCardCVV(''); setSaveCard(false); setUsingSavedCard(false); setSavedCardId(''); setPaypalEmail(''); setMobilePhone(''); setMobileProvider(''); setBankName(''); setAccountNumber(''); setAccountName(''); setCryptoAddr(''); setCryptoCoin('BTC');
+  // Detect card type from number
+  const detectCardType = (number) => {
+    const cleaned = number.replace(/\s+/g, '');
+    if (/^4/.test(cleaned)) return 'visa';
+    if (/^5[1-5]/.test(cleaned)) return 'mastercard';
+    if (/^3[47]/.test(cleaned)) return 'amex';
+    if (/^6(?:011|5)/.test(cleaned)) return 'discover';
+    return '';
   };
 
-  const [showManage, setShowManage] = useState(false);
-
-  const removeSavedCard = (id) => {
-    if (!id) return;
-    if (!window.confirm('Remove saved card?')) return;
-    const next = savedCards.filter(s => s.id !== id);
-    setSavedCards(next);
-    try { localStorage.setItem('saved_cards', JSON.stringify(next)); } catch (e) {}
-    if (savedCardId === id) { setSavedCardId(''); setUsingSavedCard(false); setCardName(''); setCardNumber(''); }
+  // Format card number with spaces
+  const formatCardNumber = (value) => {
+    const cleaned = value.replace(/\s+/g, '');
+    const match = cleaned.match(/.{1,4}/g);
+    return match ? match.join(' ') : cleaned;
   };
 
-  const validate = () => {
-    const amt = Number(amount || 0);
-    if (!amt || amt <= 0) return 'Enter a valid deposit amount';
+  const handleCardNumberChange = (e) => {
+    const value = e.target.value.replace(/\s+/g, '');
+    if (value.length <= 16) {
+      setCardNumber(formatCardNumber(value));
+      setCardType(detectCardType(value));
+    }
+  };
 
-    if (method === 'Bank Cards') {
-      // If using saved card, we skip full number requirement (simulated)
-      if (!cardName) return 'Enter cardholder name';
-      if (!usingSavedCard) {
-        if (!/^\d{12,19}$/.test(cardNumber.replace(/\s+/g, ''))) return 'Enter valid card number (12-19 digits)';
+  const handleExpiryChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+      value = value.slice(0, 2) + '/' + value.slice(2, 4);
+    }
+    setCardExpiry(value);
+  };
+
+  const quickAmounts = [50, 100, 500, 1000, 5000];
+
+  const cardLogos = {
+    visa: 'https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg',
+    mastercard: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg',
+    amex: 'https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg',
+    discover: 'https://upload.wikimedia.org/wikipedia/commons/5/57/Discover_Card_logo.svg'
+  };
+
+  const paymentMethods = [
+    { id: 'Card', name: 'Credit/Debit Card', icon: CreditCard, desc: 'Visa, Mastercard, Amex' },
+    { id: 'PayPal', name: 'PayPal', icon: DollarSign, desc: 'Fast & secure' },
+    { id: 'M-Pesa', name: 'M-Pesa', icon: Smartphone, desc: 'Mobile money' },
+    { id: 'MOMO', name: 'MTN MOMO', icon: Smartphone, desc: 'Mobile money' },
+    { id: 'Bank', name: 'Bank Transfer', icon: Building, desc: 'Direct transfer' },
+    { id: 'Crypto', name: 'Cryptocurrency', icon: Bitcoin, desc: 'BTC, ETH, USDT' }
+  ];
+
+  const validateStep2 = () => {
+    if (method === 'Card') {
+      if (!selectedSavedCard) {
+        if (!cardName) return 'Please enter cardholder name';
+        if (cardNumber.replace(/\s+/g, '').length < 13) return 'Please enter a valid card number';
+        if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) return 'Please enter expiry as MM/YY';
+        if (cardCVV.length < 3) return 'Please enter a valid CVV';
       }
-      if (!/^(0[1-9]|1[0-2])\/(\d{2}|\d{4})$/.test(cardExpiry)) return 'Enter expiry as MM/YY or MM/YYYY';
-      if (!/^\d{3,4}$/.test(cardCVV)) return 'Enter CVV (3-4 digits)';
+    } else if (method === 'PayPal') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEmail)) return 'Please enter a valid PayPal email';
+    } else if (method === 'M-Pesa' || method === 'MOMO') {
+      if (!/^\+?[0-9]{6,15}$/.test(mobilePhone)) return 'Please enter a valid phone number';
+      if (!mobileProvider) return 'Please select a provider';
+    } else if (method === 'Bank') {
+      if (!bankName) return 'Please enter bank name';
+      if (!accountNumber) return 'Please enter account number';
+      if (!accountName) return 'Please enter account name';
+    } else if (method === 'Crypto') {
+      if (!cryptoAddress) return 'Please enter wallet address';
+      if (!cryptoCoin) return 'Please select cryptocurrency';
     }
-
-    if (method === 'PayPal') {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEmail)) return 'Enter a valid PayPal email';
-    }
-
-    if (method === 'M-Pesa' || method === 'MOMO') {
-      if (!/^\+?[0-9]{6,15}$/.test(mobilePhone)) return 'Enter a valid phone number with country code';
-      if (!mobileProvider) return 'Select mobile money provider';
-    }
-
-    if (method === 'Bank Transfer') {
-      if (!bankName) return 'Enter bank name';
-      if (!accountNumber) return 'Enter account number';
-      if (!accountName) return 'Enter account name';
-    }
-
-    if (method === 'Crypto') {
-      if (!cryptoAddr) return 'Enter destination wallet address';
-      if (!cryptoCoin) return 'Select crypto coin';
-    }
-
     return null;
   };
 
-  const submit = (e) => {
-    e.preventDefault();
-    const err = validate();
-    if (err) return alert(err);
+  const handleSubmit = () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      const error = validateStep2();
+      if (error) {
+        alert(error);
+        return;
+      }
+      setStep(3);
+      return;
+    }
+
+    // Final submission
     const amt = parseFloat(amount);
     const reference = `DEP-${Date.now()}`;
-    const details = { reference };
-    // attach method-specific details (do not store full sensitive card info in real app)
-    if (method === 'Bank Cards') {
-      details.card = { issuer: cardIssuer, name: cardName, last4: cardNumber.replace(/\s+/g, '').slice(-4), saved: saveCard || usingSavedCard, savedCardId: savedCardId || undefined };
-      // persist saved card metadata if requested and not already using one
-      if (saveCard && !usingSavedCard) {
-        try {
-          const id = `card-${Date.now()}`;
-          const next = [{ id, issuer: cardIssuer, name: cardName, last4: (cardNumber.replace(/\s+/g, '').slice(-4)) }, ...savedCards];
-          localStorage.setItem('saved_cards', JSON.stringify(next));
-          setSavedCards(next);
-        } catch (e) {}
+    
+    const details = { reference, method };
+
+    // Save card if requested
+    if (method === 'Card' && saveCard && !selectedSavedCard) {
+      try {
+        const id = `card-${Date.now()}`;
+        const newCard = {
+          id,
+          type: cardType || 'card',
+          name: cardName,
+          last4: cardNumber.replace(/\s+/g, '').slice(-4),
+          expiry: cardExpiry
+        };
+        const updated = [newCard, ...savedCards];
+        localStorage.setItem('saved_cards', JSON.stringify(updated));
+        setSavedCards(updated);
+      } catch (e) {}
+    }
+
+    // Add method-specific details
+    if (method === 'Card') {
+      details.card = selectedSavedCard || {
+        type: cardType,
+        name: cardName,
+        last4: cardNumber.replace(/\s+/g, '').slice(-4)
+      };
+    } else if (method === 'PayPal') {
+      details.paypal = { email: paypalEmail };
+    } else if (method === 'M-Pesa' || method === 'MOMO') {
+      details.mobile = { phone: mobilePhone, provider: mobileProvider };
+    } else if (method === 'Bank') {
+      details.bank = { bankName, accountNumber, accountName };
+    } else if (method === 'Crypto') {
+      details.crypto = { coin: cryptoCoin, address: cryptoAddress };
+    }
+
+    onDeposit({
+      amount: amt,
+      method,
+      details,
+      date: new Date().toISOString(),
+      reference
+    });
+
+    // Reset form
+    setAmount('');
+    setMethod('Card');
+    setCardName('');
+    setCardNumber('');
+    setCardExpiry('');
+    setCardCVV('');
+    setCardType('');
+    setSaveCard(false);
+    setSelectedSavedCard(null);
+    setPaypalEmail('');
+    setMobilePhone('');
+    setMobileProvider('');
+    setBankName('');
+    setAccountNumber('');
+    setAccountName('');
+    setCryptoCoin('BTC');
+    setCryptoAddress('');
+    setStep(1);
+  };
+
+  const removeSavedCard = (id) => {
+    if (window.confirm('Remove this card?')) {
+      const updated = savedCards.filter(c => c.id !== id);
+      setSavedCards(updated);
+      localStorage.setItem('saved_cards', JSON.stringify(updated));
+      if (selectedSavedCard?.id === id) {
+        setSelectedSavedCard(null);
       }
     }
-    if (method === 'PayPal') details.paypal = { email: paypalEmail };
-    if (method === 'M-Pesa' || method === 'MOMO') details.mobile = { phone: mobilePhone, provider: mobileProvider };
-    if (method === 'Bank Transfer') details.bank = { bankName, accountNumber, accountName };
-    if (method === 'Crypto') details.crypto = { coin: cryptoCoin, address: cryptoAddr };
-
-    // simulate deposit success (in a real app you'd integrate with payment gateways)
-    onDeposit({ amount: amt, method, details, date: new Date().toISOString(), reference });
-    resetForm();
   };
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-white max-w-2xl">
-      <h2 className="text-xl font-semibold mb-4 text-blue-400">Deposit Funds</h2>
-      <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label className="block text-sm text-gray-300">Amount (USD)</label>
-          <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min="0" step="0.01" className="mt-1 w-full bg-gray-700 rounded p-2" />
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-300">Method</label>
-          <select value={method} onChange={(e) => setMethod(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2">
-            <option>Visa</option>
-            <option>PayPal</option>
-            <option>M-Pesa</option>
-            <option>MOMO</option>
-            <option>Bank Transfer</option>
-            <option>Crypto</option>
-          </select>
-        </div>
-
-        {/* Visa / Card form */}
-        {method === 'Bank Cards' && (
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-1/2">
-                <label className="block text-sm text-gray-300">Card Type</label>
-                <select value={cardIssuer} onChange={(e) => setCardIssuer(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2">
-                  <option>Visa</option>
-                  <option>MasterCard</option>
-                  <option>American Express</option>
-                  <option>Discover</option>
-                </select>
-              </div>
-
-              <div className="w-1/2">
-                <label className="block text-sm text-gray-300">Saved Card</label>
-                <select value={savedCardId} onChange={(e) => {
-                  const v = e.target.value;
-                  setSavedCardId(v);
-                  if (!v) { setUsingSavedCard(false); setCardName(''); setCardNumber(''); } else {
-                    const found = savedCards.find(s => s.id === v);
-                    if (found) {
-                      setUsingSavedCard(true);
-                      setCardIssuer(found.issuer);
-                      setCardName(found.name);
-                      setCardNumber('**** **** **** ' + found.last4);
-                    }
-                  }
-                }} className="mt-1 w-full bg-gray-700 rounded p-2">
-                  <option value="">-- Use saved card --</option>
-                  {savedCards.map(c => (<option key={c.id} value={c.id}>{c.issuer} • **** {c.last4} ({c.name})</option>))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-gray-300">Cardholder Name</label>
-                <input value={cardName} onChange={(e) => setCardName(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300">Card Number</label>
-                <input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="1234 5678 9012 3456" className="mt-1 w-full bg-gray-700 rounded p-2" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300">Expiry (MM/YY)</label>
-                <input value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/YY" className="mt-1 w-full bg-gray-700 rounded p-2" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300">CVV</label>
-                <input value={cardCVV} onChange={(e) => setCardCVV(e.target.value)} placeholder="123" className="mt-1 w-full bg-gray-700 rounded p-2" />
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3 mt-2">
-              <label className="flex items-center space-x-2 text-sm text-gray-300"><input type="checkbox" checked={saveCard} onChange={(e) => setSaveCard(e.target.checked)} className="form-checkbox" /> <span>Save this card for future use</span></label>
-            </div>
-          </div>
-        )}
-
-        {/* PayPal */}
-        {method === 'PayPal' && (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-6 sm:p-8 shadow-lg">
+        <div className="flex items-center">
+          <DollarSign className="w-8 h-8 mr-3 text-white" />
           <div>
-            <label className="block text-sm text-gray-300">PayPal Email</label>
-            <input value={paypalEmail} onChange={(e) => setPaypalEmail(e.target.value)} placeholder="you@paypal.com" className="mt-1 w-full bg-gray-700 rounded p-2" />
-            <div className="text-xs text-gray-400 mt-1">You will be redirected to PayPal to complete payment (simulated here).</div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Deposit Funds</h2>
+            <p className="text-green-100 text-sm mt-1">Add money to your account securely</p>
           </div>
-        )}
-
-        {/* Mobile money */}
-        {(method === 'M-Pesa' || method === 'MOMO') && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-gray-300">Phone (with country code)</label>
-              <input value={mobilePhone} onChange={(e) => setMobilePhone(e.target.value)} placeholder="+2547XXXXXXXX" className="mt-1 w-full bg-gray-700 rounded p-2" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300">Provider</label>
-              <select value={mobileProvider} onChange={(e) => setMobileProvider(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2">
-                <option value="">Select provider</option>
-                <option>Safaricom</option>
-                <option>MTN</option>
-                <option>Vodafone</option>
-              </select>
-            </div>
-            <div className="sm:col-span-2 text-xs text-gray-400">After submitting, follow the provider's prompt to complete the transfer (simulated — funds will be credited).</div>
-          </div>
-        )}
-
-        {/* Bank transfer */}
-        {method === 'Bank Transfer' && (
-          <div className="space-y-2">
-            <div>
-              <label className="block text-sm text-gray-300">Bank Name</label>
-              <input value={bankName} onChange={(e) => setBankName(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-gray-300">Account Number</label>
-                <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-300">Account Name</label>
-                <input value={accountName} onChange={(e) => setAccountName(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2" />
-              </div>
-            </div>
-            <div className="text-xs text-gray-400">Use your bank app to transfer to our account; enter the reference above so we can reconcile (simulation).</div>
-          </div>
-        )}
-
-        {/* Crypto deposit */}
-        {method === 'Crypto' && (
-          <div className="space-y-2">
-            <div>
-              <label className="block text-sm text-gray-300">Coin</label>
-              <select value={cryptoCoin} onChange={(e) => setCryptoCoin(e.target.value)} className="mt-1 w-full bg-gray-700 rounded p-2">
-                <option>BTC</option>
-                <option>ETH</option>
-                <option>USDT</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300">Destination Address</label>
-              <input value={cryptoAddr} onChange={(e) => setCryptoAddr(e.target.value)} placeholder="Wallet address" className="mt-1 w-full bg-gray-700 rounded p-2" />
-              <div className="text-xs text-gray-400 mt-1">Send the exact amount to this address on your wallet and include the reference in the memo (simulated).</div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center space-x-3">
-          <button type="submit" className="bg-green-600 px-4 py-2 rounded hover:bg-green-700">Submit Deposit</button>
-          <button type="button" onClick={resetForm} className="bg-gray-600 px-3 py-2 rounded">Reset</button>
         </div>
-      </form>
+      </div>
 
-      <div className="mt-4">
-        <button onClick={() => setShowManage(s => !s)} className="text-sm text-blue-400">{showManage ? 'Hide' : 'Manage'} saved cards</button>
-        {showManage && (
-          <div className="mt-2 bg-gray-800 p-3 rounded">
-            {savedCards.length === 0 ? (
-              <div className="text-sm text-gray-300">No saved cards.</div>
-            ) : (
-              <ul className="space-y-2">
-                {savedCards.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between bg-gray-700 p-2 rounded">
-                    <div className="text-sm">{c.issuer} • **** {c.last4} <span className="text-xs text-gray-400">({c.name})</span></div>
-                    <div className="space-x-2">
-                      <button onClick={() => { setSavedCardId(c.id); setUsingSavedCard(true); setCardIssuer(c.issuer); setCardName(c.name); setCardNumber('**** **** **** ' + c.last4); setShowManage(false); }} className="px-2 py-1 bg-gray-600 rounded text-sm">Use</button>
-                      <button onClick={() => removeSavedCard(c.id)} className="px-2 py-1 bg-red-600 rounded text-sm">Remove</button>
-                    </div>
-                  </li>
+      {/* Progress Steps */}
+      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div className="flex items-center justify-between mb-8">
+          {[
+            { num: 1, label: 'Amount' },
+            { num: 2, label: 'Payment' },
+            { num: 3, label: 'Confirm' }
+          ].map((s, idx) => (
+            <React.Fragment key={s.num}>
+              <div className="flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
+                  step >= s.num
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-700 text-gray-400'
+                }`}>
+                  {step > s.num ? <Check className="w-5 h-5" /> : s.num}
+                </div>
+                <span className={`text-xs mt-2 ${step >= s.num ? 'text-white' : 'text-gray-500'}`}>
+                  {s.label}
+                </span>
+              </div>
+              {idx < 2 && (
+                <div className={`flex-1 h-1 mx-2 rounded ${
+                  step > s.num ? 'bg-green-600' : 'bg-gray-700'
+                }`}></div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Step 1: Amount & Method */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-3">
+                How much would you like to deposit?
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" />
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full bg-gray-700 text-white rounded-lg pl-12 pr-4 py-4 text-2xl font-bold focus:ring-2 focus:ring-green-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Quick Amount Buttons */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-3">Quick amounts</label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {quickAmounts.map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => setAmount(amt.toString())}
+                    className="bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    ${amt}
+                  </button>
                 ))}
-              </ul>
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-3">
+                Select Payment Method
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {paymentMethods.map((pm) => {
+                  const Icon = pm.icon;
+                  return (
+                    <div
+                      key={pm.id}
+                      onClick={() => setMethod(pm.id)}
+                      className={`bg-gray-700 rounded-lg p-4 cursor-pointer transition-all ${
+                        method === pm.id
+                          ? 'ring-2 ring-green-500 bg-gray-600'
+                          : 'hover:bg-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          method === pm.id ? 'bg-green-600' : 'bg-gray-600'
+                        }`}>
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-white">{pm.name}</div>
+                          <div className="text-xs text-gray-400">{pm.desc}</div>
+                        </div>
+                        {method === pm.id && (
+                          <Check className="w-5 h-5 text-green-400" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <Shield className="w-5 h-5 text-blue-400 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-300">
+                    <strong className="text-white">Secure Payment:</strong> Your payment information is encrypted and secure. We never store your full card details.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={!amount || parseFloat(amount) <= 0}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-4 rounded-lg transition-colors"
+            >
+              Continue to Payment
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Payment Details */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Payment Method</h3>
+              <div className="text-2xl font-bold text-green-400">${parseFloat(amount).toLocaleString()}</div>
+            </div>
+
+            {/* Saved Cards */}
+            {savedCards.length > 0 && method === 'Card' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-3">
+                  Saved Cards
+                </label>
+                <div className="space-y-3">
+                  {savedCards.map((card) => (
+                    <div
+                      key={card.id}
+                      onClick={() => setSelectedSavedCard(card)}
+                      className={`bg-gray-700 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedSavedCard?.id === card.id
+                          ? 'ring-2 ring-green-500 bg-gray-600'
+                          : 'hover:bg-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-8 bg-gray-800 rounded flex items-center justify-center">
+                            {card.type && cardLogos[card.type] ? (
+                              <img src={cardLogos[card.type]} alt={card.type} className="h-6" />
+                            ) : (
+                              <CreditCard className="w-6 h-6 text-gray-400" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-white">•••• {card.last4}</div>
+                            <div className="text-sm text-gray-400">{card.name}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {selectedSavedCard?.id === card.id && (
+                            <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSavedCard(card.id);
+                            }}
+                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-700"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-gray-800 text-gray-400">Or use a new card</span>
+                  </div>
+                </div>
+              </div>
             )}
+
+            {/* New Card Form */}
+            {!selectedSavedCard && method === 'Card' && (
+              <div className="space-y-4">
+                {/* Card Type Logos */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-3">
+                    We Accept
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    {Object.entries(cardLogos).map(([type, logo]) => (
+                      <div
+                        key={type}
+                        className={`w-16 h-10 bg-white rounded flex items-center justify-center p-2 transition-all ${
+                          cardType === type ? 'ring-2 ring-green-500' : 'opacity-60'
+                        }`}
+                      >
+                        <img src={logo} alt={type} className="max-h-full" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Card Number */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Card Number</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={cardNumber}
+                      onChange={handleCardNumberChange}
+                      placeholder="1234 5678 9012 3456"
+                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 pr-12 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    />
+                    {cardType && cardLogos[cardType] && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 w-10 h-6 bg-white rounded flex items-center justify-center p-1">
+                        <img src={cardLogos[cardType]} alt={cardType} className="max-h-full" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cardholder Name */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Cardholder Name</label>
+                  <input
+                    type="text"
+                    value={cardName}
+                    onChange={(e) => setCardName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Expiry and CVV */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Expiry Date</label>
+                    <input
+                      type="text"
+                      value={cardExpiry}
+                      onChange={handleExpiryChange}
+                      placeholder="MM/YY"
+                      maxLength="5"
+                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">CVV</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={cardCVV}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          if (value.length <= 4) setCardCVV(value);
+                        }}
+                        placeholder="123"
+                        maxLength="4"
+                        className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                      />
+                      <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Card Checkbox */}
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveCard}
+                    onChange={(e) => setSaveCard(e.target.checked)}
+                    className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-sm text-gray-300">Save this card for future deposits</span>
+                </label>
+              </div>
+            )}
+
+            {/* PayPal Form */}
+            {method === 'PayPal' && (
+              <div className="space-y-4">
+                <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-300">
+                    You'll be redirected to PayPal to complete your payment securely.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">PayPal Email</label>
+                  <input
+                    type="email"
+                    value={paypalEmail}
+                    onChange={(e) => setPaypalEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* M-Pesa / MOMO Form */}
+            {(method === 'M-Pesa' || method === 'MOMO') && (
+              <div className="space-y-4">
+                <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-300">
+                    You'll receive a prompt on your phone to complete the payment.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={mobilePhone}
+                    onChange={(e) => setMobilePhone(e.target.value)}
+                    placeholder="+254712345678"
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Include country code (e.g., +254 for Kenya)</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Provider</label>
+                  <select
+                    value={mobileProvider}
+                    onChange={(e) => setMobileProvider(e.target.value)}
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  >
+                    <option value="">Select provider</option>
+                    <option value="Safaricom">Safaricom</option>
+                    <option value="MTN">MTN</option>
+                    <option value="Vodafone">Vodafone</option>
+                    <option value="Airtel">Airtel</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Bank Transfer Form */}
+            {method === 'Bank' && (
+              <div className="space-y-4">
+                <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-300">
+                    Transfer funds directly from your bank account. Processing may take 1-3 business days.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Bank Name</label>
+                  <input
+                    type="text"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="Your Bank Name"
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Account Number</label>
+                    <input
+                      type="text"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      placeholder="1234567890"
+                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Account Name</label>
+                    <input
+                      type="text"
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      placeholder="John Doe"
+                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Crypto Form */}
+            {method === 'Crypto' && (
+              <div className="space-y-4">
+                <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-300">
+                    <strong className="text-white">Important:</strong> Send only the selected cryptocurrency to the address below. Sending other coins may result in permanent loss.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Select Cryptocurrency</label>
+                  <select
+                    value={cryptoCoin}
+                    onChange={(e) => setCryptoCoin(e.target.value)}
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  >
+                    <option value="BTC">Bitcoin (BTC)</option>
+                    <option value="ETH">Ethereum (ETH)</option>
+                    <option value="USDT">Tether (USDT)</option>
+                    <option value="USDC">USD Coin (USDC)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Your Wallet Address</label>
+                  <input
+                    type="text"
+                    value={cryptoAddress}
+                    onChange={(e) => setCryptoAddress(e.target.value)}
+                    placeholder="Enter your wallet address"
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Double-check your address before proceeding</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors"
+              >
+                Review Deposit
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Confirmation */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Review Your Deposit</h3>
+              <p className="text-gray-400">Please confirm the details below</p>
+            </div>
+
+            <div className="bg-gray-700 rounded-lg p-6 space-y-4">
+              <div className="flex justify-between items-center pb-4 border-b border-gray-600">
+                <span className="text-gray-400">Amount</span>
+                <span className="text-2xl font-bold text-white">${parseFloat(amount).toLocaleString()}</span>
+              </div>
+
+              <div className="flex justify-between items-center pb-4 border-b border-gray-600">
+                <span className="text-gray-400">Payment Method</span>
+                <div className="flex items-center space-x-2">
+                  {method === 'Card' && selectedSavedCard ? (
+                    <>
+                      {selectedSavedCard.type && cardLogos[selectedSavedCard.type] && (
+                        <img src={cardLogos[selectedSavedCard.type]} alt={selectedSavedCard.type} className="h-6" />
+                      )}
+                      <span className="text-white">•••• {selectedSavedCard.last4}</span>
+                    </>
+                  ) : method === 'Card' ? (
+                    <>
+                      {cardType && cardLogos[cardType] && (
+                        <img src={cardLogos[cardType]} alt={cardType} className="h-6" />
+                      )}
+                      <span className="text-white">•••• {cardNumber.replace(/\s+/g, '').slice(-4)}</span>
+                    </>
+                  ) : method === 'PayPal' ? (
+                    <span className="text-white">{paypalEmail}</span>
+                  ) : method === 'M-Pesa' || method === 'MOMO' ? (
+                    <span className="text-white">{mobilePhone} ({mobileProvider})</span>
+                  ) : method === 'Bank' ? (
+                    <span className="text-white">{bankName} - {accountNumber}</span>
+                  ) : method === 'Crypto' ? (
+                    <span className="text-white">{cryptoCoin}</span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pb-4 border-b border-gray-600">
+                <span className="text-gray-400">Processing Fee</span>
+                <span className="text-white">$0.00</span>
+              </div>
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-lg font-semibold text-white">Total</span>
+                <span className="text-2xl font-bold text-green-400">${parseFloat(amount).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-4">
+              <p className="text-sm text-gray-300">
+                By confirming, you authorize this deposit. Funds will be available in your account within minutes.
+              </p>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setStep(2)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 rounded-lg transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition-colors"
+              >
+                Confirm Deposit
+              </button>
+            </div>
           </div>
         )}
       </div>

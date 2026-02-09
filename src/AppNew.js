@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Menu, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Menu, TrendingUp, TrendingDown, Bell, Settings as SettingsIcon } from 'lucide-react';
 
 import Profile from './components/Profile';
 import CryptoInvestment from './components/CryptoInvestment';
@@ -16,6 +16,8 @@ import QuickInvestButton from './components/QuickInvestButton';
 import CoinModal from './components/CoinModal';
 import TradeNow from './components/TradeNow';
 import Earn from './components/Earn';
+import Settings from './components/Settings';
+import Notifications from './components/Notifications';
 
 
 
@@ -45,6 +47,7 @@ export default function App() {
   const [transactions, setTransactions] = useState(storage.get('transactions', []));
   const [auth, setAuth] = useState(storage.get('auth', { loggedIn: false, lastLogin: null }));
   const [profileOpenEdit, setProfileOpenEdit] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const handleProfileOpenHandled = useCallback(() => {
     setProfileOpenEdit(false);
@@ -273,6 +276,25 @@ export default function App() {
                 )}
               </div>
 
+              {/* Notifications Bell */}
+              <button
+                onClick={() => setNotificationsOpen(true)}
+                className="relative p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5 text-gray-300" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+
+              {/* Settings Icon */}
+              <button
+                onClick={() => setPageAndPersist('Settings')}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Settings"
+              >
+                <SettingsIcon className="w-5 h-5 text-gray-300" />
+              </button>
+
               {/* Mobile Menu Button */}
               <button 
                 onClick={() => setSidebarOpen(true)} 
@@ -303,12 +325,19 @@ export default function App() {
 
           {page === 'Earn' && <Earn userEmail={profile.email} onNotify={addToast} />}
 
+          {page === 'Settings' && <Settings profile={profile} onSave={handleUpdateProfile} onNotify={addToast} />}
+
           {page === 'Profile' && <Profile profile={profile} onSave={handleUpdateProfile} auth={auth} onLogin={handleLogin} onLogout={handleLogout} openEdit={profileOpenEdit} onOpenHandled={handleProfileOpenHandled} />}
 
           <QuickInvestButton onClick={() => setPageAndPersist('Capital Appreciation Plan')} />
 
           {typeof coinModalOpen !== 'undefined' && coinModalOpen && (
             <CoinModal coin={selectedCoin} onClose={() => setCoinModalOpen(false)} balance={balance} onBuy={(payload) => { handleInvest({ coin: payload.coin, amount: payload.amount, name: payload.name }); setCoinModalOpen(false); }} onSell={(payload) => { handleSell(payload); setCoinModalOpen(false); }} />
+          )}
+
+          {/* Notifications Panel */}
+          {notificationsOpen && (
+            <Notifications onClose={() => setNotificationsOpen(false)} />
           )}
 
           {/* Mobile slide-over sidebar */}
