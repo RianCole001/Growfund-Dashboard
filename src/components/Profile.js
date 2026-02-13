@@ -1,18 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-export default function Profile({ profile = {}, onSave, auth = { loggedIn: false }, onLogin, onLogout, openEdit = false, onOpenHandled, onClose }) {
+export default function Profile({ profile = {}, onSave, auth = { loggedIn: false }, onLogout, openEdit = false, onOpenHandled, onClose }) {
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(profile.name || 'Jane Doe');
-  const [email, setEmail] = useState(profile.email || 'jane@example.com');
-  const [phone, setPhone] = useState(profile.phone || '');
-  const [location, setLocation] = useState(profile.location || '');
-  const [occupation, setOccupation] = useState(profile.occupation || '');
-  const [company, setCompany] = useState(profile.company || '');
-  const [website, setWebsite] = useState(profile.website || '');
-  const [bio, setBio] = useState(profile.bio || '');
-  const [avatar, setAvatar] = useState(profile.avatar || null);
+  const [name, setName] = useState(profile?.name || '');
+  const [email, setEmail] = useState(profile?.email || '');
+  const [phone, setPhone] = useState(profile?.phone || '');
+  const [location, setLocation] = useState(profile?.location || '');
+  const [occupation, setOccupation] = useState(profile?.occupation || '');
+  const [company, setCompany] = useState(profile?.company || '');
+  const [website, setWebsite] = useState(profile?.website || '');
+  const [bio, setBio] = useState(profile?.bio || '');
+  const [avatar, setAvatar] = useState(profile?.avatar || null);
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef();
+
+  // Calculate profile completion percentage
+  const calculateCompletion = () => {
+    const fields = [name, email, phone, location, occupation, company, website, bio, avatar];
+    const filledFields = fields.filter(field => field && field.toString().trim()).length;
+    return Math.round((filledFields / fields.length) * 100);
+  };
+
+  const completion = calculateCompletion();
+  const completionColor = completion < 33 ? 'bg-red-500' : completion < 66 ? 'bg-yellow-500' : 'bg-green-500';
+  const completionTextColor = completion < 33 ? 'text-red-400' : completion < 66 ? 'text-yellow-400' : 'text-green-400';
 
   useEffect(() => {
     if (openEdit) {
@@ -24,54 +37,116 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
   const startEdit = () => setEditing(true);
   const cancelEdit = () => {
     setEditing(false);
-    setName(profile.name || ''); 
-    setEmail(profile.email || ''); 
-    setPhone(profile.phone || ''); 
-    setLocation(profile.location || ''); 
-    setOccupation(profile.occupation || ''); 
-    setCompany(profile.company || ''); 
-    setWebsite(profile.website || ''); 
-    setBio(profile.bio || ''); 
-    setAvatar(profile.avatar || null);
+    setName(profile?.name || ''); 
+    setEmail(profile?.email || ''); 
+    setPhone(profile?.phone || ''); 
+    setLocation(profile?.location || ''); 
+    setOccupation(profile?.occupation || ''); 
+    setCompany(profile?.company || ''); 
+    setWebsite(profile?.website || ''); 
+    setBio(profile?.bio || ''); 
+    setAvatar(profile?.avatar || null);
   };
 
-  const save = () => {
-    const next = { ...profile, name, email, phone, location, occupation, company, website, bio, avatar };
-    onSave && onSave(next);
-    setEditing(false);
+  const save = async () => {
+    try {
+      setSaving(true);
+      
+      // Validate required fields
+      if (!name.trim()) {
+        toast.error('Name is required');
+        return;
+      }
+      
+      if (!email.trim()) {
+        toast.error('Email is required');
+        return;
+      }
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('first_name', name.split(' ')[0] || '');
+      formData.append('last_name', name.split(' ').slice(1).join(' ') || '');
+      // Don't send email - it's read-only on backend
+      formData.append('phone', phone || '');
+      formData.append('location', location || '');
+      formData.append('occupation', occupation || '');
+      formData.append('company', company || '');
+      formData.append('website', website || '');
+      formData.append('bio', bio || '');
+      
+      // Handle avatar upload if it's a new file (base64 or File object)
+      if (avatar && avatar !== profile?.avatar) {
+        if (avatar.startsWith('data:')) {
+          // Convert base64 to blob
+          const response = await fetch(avatar);
+          const blob = await response.blob();
+          formData.append('avatar', blob, 'avatar.jpg');
+        } else if (avatar instanceof File) {
+          formData.append('avatar', avatar);
+        }
+      }
+      
+      if (onSave) {
+        await onSave(formData);
+      }
+      setEditing(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast.error('Failed to save profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAvatar = (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
+    
+    // Validate file size (max 5MB)
+    if (f.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+    
+    // Validate file type
+    if (!f.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    
     const reader = new FileReader();
     reader.onload = (ev) => setAvatar(ev.target.result);
     reader.readAsDataURL(f);
-  };
-
-  const login = () => {
-    const em = window.prompt('Enter email to sign in:', email || '');
-    if (!em) return;
-    if (onLogin) onLogin({ email: em });
   };
 
   return (
     <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg text-white max-w-4xl mx-auto">
       {/* Header with Exit Button */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-700">
-        <h2 className="text-xl sm:text-2xl font-semibold text-blue-400">Profile</h2>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-semibold text-blue-400">Profile</h2>
+          <div className="mt-2 flex items-center space-x-2">
+            <div className="w-32 bg-gray-700 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${completionColor}`}
+                style={{ width: `${completion}%` }}
+              ></div>
+            </div>
+            <span className={`text-sm font-semibold ${completionTextColor}`}>{completion}%</span>
+          </div>
+        </div>
         <div className="flex items-center space-x-2">
-          {!auth.loggedIn ? (
-            <button onClick={login} className="bg-green-600 px-3 py-1.5 rounded-lg text-sm hover:bg-green-700 transition-colors">
-              Log in
-            </button>
-          ) : (
-            <button onClick={() => onLogout && onLogout()} className="bg-red-600 px-3 py-1.5 rounded-lg text-sm hover:bg-red-700 transition-colors">
+          {auth?.loggedIn && (
+            <button 
+              onClick={() => onLogout && onLogout()} 
+              className="bg-red-600 px-3 py-1.5 rounded-lg text-sm hover:bg-red-700 transition-colors"
+            >
               Log out
             </button>
           )}
           {!editing && (
-            <button onClick={startEdit} className="bg-blue-600 px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+            <button onClick={() => setEditing(true)} className="bg-blue-600 px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition-colors">
               Edit
             </button>
           )}
@@ -157,6 +232,40 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
             </div>
           ) : (
             <div className="mt-4 space-y-3">
+              {/* Completion Checklist */}
+              <div className="bg-gray-700/50 p-3 rounded-lg mb-4">
+                <div className="text-sm font-semibold text-gray-300 mb-2">Profile Completion: {completion}%</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className={`flex items-center ${name ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{name ? '✓' : '○'}</span> Name
+                  </div>
+                  <div className={`flex items-center ${email ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{email ? '✓' : '○'}</span> Email
+                  </div>
+                  <div className={`flex items-center ${phone ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{phone ? '✓' : '○'}</span> Phone
+                  </div>
+                  <div className={`flex items-center ${location ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{location ? '✓' : '○'}</span> Location
+                  </div>
+                  <div className={`flex items-center ${occupation ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{occupation ? '✓' : '○'}</span> Occupation
+                  </div>
+                  <div className={`flex items-center ${company ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{company ? '✓' : '○'}</span> Company
+                  </div>
+                  <div className={`flex items-center ${website ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{website ? '✓' : '○'}</span> Website
+                  </div>
+                  <div className={`flex items-center ${bio ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{bio ? '✓' : '○'}</span> Bio
+                  </div>
+                  <div className={`flex items-center ${avatar ? 'text-green-400' : 'text-gray-400'}`}>
+                    <span className="mr-1">{avatar ? '✓' : '○'}</span> Avatar
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-300 mb-1">Full name</label>
@@ -230,14 +339,16 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
 
               <div className="flex items-center space-x-2 pt-2">
                 <button 
-                  onClick={save} 
-                  className="flex-1 sm:flex-none bg-blue-600 px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  onClick={save}
+                  disabled={saving}
+                  className="flex-1 sm:flex-none bg-blue-600 px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Save Changes
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button 
-                  onClick={cancelEdit} 
-                  className="flex-1 sm:flex-none bg-gray-600 px-6 py-2.5 rounded-lg hover:bg-gray-500 transition-colors"
+                  onClick={cancelEdit}
+                  disabled={saving}
+                  className="flex-1 sm:flex-none bg-gray-600 px-6 py-2.5 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -247,8 +358,8 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
         </div>
       </div>
 
-      <div className="mt-6 p-3 bg-gray-700/50 rounded-lg text-xs text-gray-400 text-center">
-        🔒 Your profile data is stored locally for demo purposes. In a production app you would connect this to your user service with secure storage.
+      <div className="mt-6 p-3 bg-blue-900/30 rounded-lg text-xs text-blue-300 text-center border border-blue-500/30">
+        ✓ Your profile data is securely stored in the database and synced in real-time.
       </div>
     </div>
   );

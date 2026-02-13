@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { Settings as SettingsIcon, Bell, Lock, Globe, Palette, Shield, User, Mail, Phone, Key, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, Bell, Lock, Globe, Palette, Shield, User, Mail, Phone, Key, Eye, EyeOff, TrendingUp, DollarSign } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { userAuthAPI } from '../services/api';
 
 export default function Settings({ profile, onSave, onNotify }) {
   const storage = require('../utils/storage').default;
   
   // Load settings from storage
   const [activeTab, setActiveTab] = useState('general');
+  const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState(storage.get('settings', {
     theme: 'dark',
     currency: 'USD',
@@ -31,6 +34,51 @@ export default function Settings({ profile, onSave, onNotify }) {
     }
   }));
 
+  // Fetch settings from backend on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setLoading(true);
+        const response = await userAuthAPI.getSettings();
+        const backendSettings = response.data.data || response.data;
+        
+        const formattedSettings = {
+          theme: backendSettings.theme || 'dark',
+          currency: backendSettings.currency || 'USD',
+          language: backendSettings.language || 'en',
+          timezone: backendSettings.timezone || 'UTC',
+          notifications: {
+            email: backendSettings.email_notifications !== false,
+            push: backendSettings.push_notifications !== false,
+            priceAlerts: backendSettings.price_alerts !== false,
+            transactions: backendSettings.transaction_alerts !== false,
+            referrals: backendSettings.referral_alerts !== false,
+            marketing: backendSettings.marketing_emails === true
+          },
+          security: {
+            twoFactor: backendSettings.two_factor_enabled === true,
+            loginAlerts: backendSettings.login_alerts !== false,
+            sessionTimeout: backendSettings.session_timeout || 30
+          },
+          privacy: {
+            showProfile: backendSettings.profile_visible !== false,
+            showPortfolio: backendSettings.portfolio_visible === true,
+            showActivity: backendSettings.activity_sharing === true
+          }
+        };
+        
+        setSettings(formattedSettings);
+        storage.set('settings', formattedSettings);
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
   // Password change state
   const [passwordForm, setPasswordForm] = useState({
     current: '',
@@ -42,6 +90,7 @@ export default function Settings({ profile, onSave, onNotify }) {
     new: false,
     confirm: false
   });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const tabs = [
     { id: 'general', name: 'General', icon: SettingsIcon },
@@ -50,38 +99,70 @@ export default function Settings({ profile, onSave, onNotify }) {
     { id: 'privacy', name: 'Privacy', icon: Shield }
   ];
 
-  const updateSetting = (category, key, value) => {
-    const newSettings = {
-      ...settings,
-      [category]: typeof settings[category] === 'object' 
-        ? { ...settings[category], [key]: value }
-        : value
-    };
-    setSettings(newSettings);
-    storage.set('settings', newSettings);
-    if (typeof onNotify === 'function') {
-      onNotify('Settings updated successfully');
+  const updateSetting = async (category, key, value) => {
+    try {
+      const newSettings = {
+        ...settings,
+        [category]: typeof settings[category] === 'object' 
+          ? { ...settings[category], [key]: value }
+          : value
+      };
+      
+      // Prepare data for backend
+      const updateData = {
+        theme: newSettings.theme,
+        currency: newSettings.currency,
+        language: newSettings.language,
+        timezone: newSettings.timezone,
+        email_notifications: newSettings.notifications.email,
+        push_notifications: newSettings.notifications.push,
+        price_alerts: newSettings.notifications.priceAlerts,
+        transaction_alerts: newSettings.notifications.transactions,
+        referral_alerts: newSettings.notifications.referrals,
+        marketing_emails: newSettings.notifications.marketing,
+        two_factor_enabled: newSettings.security.twoFactor,
+        login_alerts: newSettings.security.loginAlerts,
+        session_timeout: newSettings.security.sessionTimeout,
+        profile_visible: newSettings.privacy.showProfile,
+        portfolio_visible: newSettings.privacy.showPortfolio,
+        activity_sharing: newSettings.privacy.showActivity
+      };
+
+      await userAuthAPI.updateSettings(updateData);
+      setSettings(newSettings);
+      storage.set('settings', newSettings);
+      toast.success('Settings updated successfully');
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      toast.error('Failed to update settings');
     }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
-      alert('Please fill all password fields');
+      toast.error('Please fill all password fields');
       return;
     }
     if (passwordForm.new !== passwordForm.confirm) {
-      alert('New passwords do not match');
+      toast.error('New passwords do not match');
       return;
     }
     if (passwordForm.new.length < 8) {
-      alert('Password must be at least 8 characters');
+      toast.error('Password must be at least 8 characters');
       return;
     }
-    // In real app, this would call an API
-    if (typeof onNotify === 'function') {
-      onNotify('Password changed successfully');
+
+    try {
+      setChangingPassword(true);
+      await userAuthAPI.changePassword(passwordForm.current, passwordForm.new, passwordForm.confirm);
+      toast.success('Password changed successfully');
+      setPasswordForm({ current: '', new: '', confirm: '' });
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast.error(error.response?.data?.error || 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
     }
-    setPasswordForm({ current: '', new: '', confirm: '' });
   };
 
   const enable2FA = () => {
@@ -413,9 +494,10 @@ export default function Settings({ profile, onSave, onNotify }) {
 
                     <button
                       onClick={handlePasswordChange}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
+                      disabled={changingPassword}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Update Password
+                      {changingPassword ? 'Updating...' : 'Update Password'}
                     </button>
                   </div>
                 </div>

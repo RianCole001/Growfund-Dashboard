@@ -1,13 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function Overview({ balance, investments, prices, transactions = [], loading = false, onNavigate }) {
+export default function Overview({ balance, investments, prices, transactions = [], loading = false, onNavigate, userName = 'User', profile = {} }) {
+  const [profilePct, setProfilePct] = useState(0);
+  const [profileData, setProfileData] = useState({});
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = (profileToUse = null) => {
+    const dataToCheck = profileToUse || profile;
+    setProfileData(dataToCheck);
+    
+    const profileFields = ['name', 'email', 'phone', 'location', 'occupation', 'company', 'website', 'bio', 'avatar'];
+    const profileFilled = profileFields.reduce((s, k) => {
+      const value = dataToCheck[k];
+      // Count as filled if it's not empty, not null, not undefined, and not just whitespace
+      return s + (value && value.toString().trim() ? 1 : 0);
+    }, 0);
+    const pct = Math.round((profileFilled / profileFields.length) * 100);
+    setProfilePct(pct);
+  };
+
+  // Recalculate when profile prop changes
+  useEffect(() => {
+    calculateProfileCompletion(profile);
+  }, [profile]);
+
+  // Listen for custom profile update event
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      calculateProfileCompletion(event.detail);
+    };
+    
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+  }, []);
+
   const totalInvested = investments.reduce((s, i) => s + (i.amount || 0), 0);
-  const storage = require('../utils/storage').default;
-  const profileData = storage.get('profile', {});
-  const profileFields = ['name','email','phone','location','occupation','company','website','bio','avatar'];
-  const profileFilled = profileFields.reduce((s, k) => s + (profileData[k] ? 1 : 0), 0);
-  const profilePct = Math.round((profileFilled / profileFields.length) * 100);
 
   // compute holdings grouped by asset key (coin or asset name)
   const holdingsMap = {};
@@ -110,7 +138,7 @@ export default function Overview({ balance, investments, prices, transactions = 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Welcome Back!</h1>
+        <h1 className="text-3xl font-bold">Welcome Back, {userName}!</h1>
         <p className="text-sm text-gray-400">Here's an overview of your portfolio journey</p>
       </div>
 

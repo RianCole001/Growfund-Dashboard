@@ -1,50 +1,102 @@
-import React, { useState } from 'react';
-import { Copy, Check, Users, DollarSign, Gift, TrendingUp, Share2, Award, Mail, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Copy, Check, Users, DollarSign, Gift, TrendingUp, Share2, Award, Mail, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { userAuthAPI } from '../services/api';
 
-export default function Earn({ userEmail = 'user@example.com', onNotify = () => {} }) {
+export default function Earn() {
   const [copied, setCopied] = useState(false);
-  
-  // Generate referral code from email
-  const generateReferralCode = (email) => {
-    const base = email.split('@')[0].toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `${base}${random}`;
+  const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [referralLink, setReferralLink] = useState('');
+  const [stats, setStats] = useState({
+    totalReferrals: 0,
+    activeReferrals: 0,
+    totalEarned: 0,
+    pendingEarnings: 0,
+    thisMonthEarnings: 0
+  });
+  const [referrals, setReferrals] = useState([]);
+
+  // Fetch referral data from backend
+  useEffect(() => {
+    fetchReferralData();
+  }, []);
+
+  const fetchReferralData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get referral stats
+      const statsResponse = await userAuthAPI.getReferralStats();
+      const statsData = statsResponse.data;
+      
+      console.log('DEBUG: Stats response:', statsData);
+      
+      // Check if referral_code is empty
+      if (!statsData.referral_code) {
+        console.warn('WARNING: referral_code is empty or missing');
+        toast.error('Referral code not found. Please contact support.');
+      }
+      
+      setReferralCode(statsData.referral_code || '');
+      setReferralLink(statsData.referral_link || '');
+      
+      setStats({
+        totalReferrals: statsData.total_referrals || 0,
+        activeReferrals: statsData.active_referrals || 0,
+        totalEarned: statsData.total_earned || 0,
+        pendingEarnings: statsData.pending_earnings || 0,
+        thisMonthEarnings: statsData.this_month_earnings || 0
+      });
+
+      // Get referrals list
+      try {
+        const referralsResponse = await userAuthAPI.getReferrals();
+        const referralsData = referralsResponse.data;
+        
+        console.log('DEBUG: Referrals response:', referralsData);
+        
+        if (referralsData && referralsData.referrals && Array.isArray(referralsData.referrals)) {
+          setReferrals(referralsData.referrals);
+        } else {
+          setReferrals([]);
+        }
+      } catch (error) {
+        console.error('Error fetching referrals list:', error);
+        setReferrals([]);
+      }
+    } catch (error) {
+      console.error('Error fetching referral data:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      toast.error('Failed to load referral data');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const referralCode = generateReferralCode(userEmail);
-  const referralLink = `https://growfund.com/signup?ref=${referralCode}`;
-
-  // Mock data - in real app, this would come from backend
-  const stats = {
-    totalReferrals: 12,
-    activeReferrals: 8,
-    totalEarned: 2450.00,
-    pendingEarnings: 350.00,
-    thisMonthEarnings: 680.00
-  };
-
-  const referrals = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', status: 'active', earned: 250, date: '2026-01-15', invested: 5000 },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'active', earned: 180, date: '2026-01-20', invested: 3600 },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', status: 'pending', earned: 0, date: '2026-02-05', invested: 0 },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', status: 'active', earned: 320, date: '2026-01-10', invested: 6400 }
-  ];
 
   const rewardTiers = [
-    { referrals: 5, bonus: 100, icon: Gift, color: 'from-blue-500 to-cyan-500', unlocked: stats.totalReferrals >= 5 },
-    { referrals: 10, bonus: 250, icon: Award, color: 'from-purple-500 to-pink-500', unlocked: stats.totalReferrals >= 10 },
-    { referrals: 25, bonus: 750, icon: TrendingUp, color: 'from-orange-500 to-red-500', unlocked: stats.totalReferrals >= 25 },
-    { referrals: 50, bonus: 2000, icon: Users, color: 'from-green-500 to-emerald-500', unlocked: stats.totalReferrals >= 50 }
+    { referrals: 5, bonus: 25, icon: Gift, color: 'from-blue-500 to-cyan-500', unlocked: stats.totalReferrals >= 5 },
+    { referrals: 10, bonus: 75, icon: Award, color: 'from-purple-500 to-pink-500', unlocked: stats.totalReferrals >= 10 },
+    { referrals: 25, bonus: 250, icon: TrendingUp, color: 'from-orange-500 to-red-500', unlocked: stats.totalReferrals >= 25 },
+    { referrals: 50, bonus: 750, icon: Users, color: 'from-green-500 to-emerald-500', unlocked: stats.totalReferrals >= 50 }
   ];
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-    if (typeof onNotify === 'function') {
-      onNotify('Referral link copied to clipboard');
-    }
+    toast.success('Copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (loading) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -56,7 +108,7 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
               <Gift className="w-6 h-6 mr-2" />
               Earn & Refer
             </h2>
-            <p className="text-blue-100 text-sm">Invite friends and earn rewards together</p>
+            <p className="text-blue-100 text-sm">Invite friends and earn $5 for each successful referral</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm px-5 py-3 rounded-lg border border-white/20">
             <div className="text-xs text-blue-100 mb-1">Total Earned</div>
@@ -124,7 +176,7 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
             <label className="block text-sm text-gray-400 mb-2">Referral Code</label>
             <div className="flex items-center space-x-2">
               <div className="flex-1 bg-gray-700 rounded-lg px-4 py-3 font-mono text-lg font-bold text-blue-400">
-                {referralCode}
+                {referralCode || 'Loading...'}
               </div>
               <button
                 onClick={() => copyToClipboard(referralCode)}
@@ -139,7 +191,7 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
             <label className="block text-sm text-gray-400 mb-2">Referral Link</label>
             <div className="flex items-center space-x-2">
               <div className="flex-1 bg-gray-700 rounded-lg px-4 py-3 text-sm text-gray-300 truncate">
-                {referralLink}
+                {referralLink || 'Loading...'}
               </div>
               <button
                 onClick={() => copyToClipboard(referralLink)}
@@ -152,7 +204,7 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
 
           <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
             <p className="text-sm text-gray-300">
-              <strong className="text-white">How it works:</strong> Share your referral link with friends. When they sign up and invest, you both earn rewards!
+              <strong className="text-white">How it works:</strong> Share your referral link with friends. When they sign up using your code, you both earn rewards! You get $5 for each successful referral.
             </p>
           </div>
         </div>
@@ -216,13 +268,13 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                      {referral.name.charAt(0)}
+                      {referral.referred_user_name.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-semibold text-white">{referral.name}</div>
+                      <div className="font-semibold text-white">{referral.referred_user_name}</div>
                       <div className="flex items-center text-xs text-gray-400">
                         <Mail className="w-3 h-3 mr-1" />
-                        {referral.email}
+                        {referral.referred_user_email}
                       </div>
                     </div>
                   </div>
@@ -230,32 +282,19 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
 
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
-                    <div className="text-xs text-gray-400 mb-1">Invested</div>
-                    <div className="font-semibold text-white">${referral.invested.toLocaleString()}</div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-xs text-gray-400 mb-1">Earned</div>
-                    <div className="font-semibold text-green-400">${referral.earned.toLocaleString()}</div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-xs text-gray-400 mb-1 flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      Joined
-                    </div>
-                    <div className="text-xs text-gray-300">{new Date(referral.date).toLocaleDateString()}</div>
+                    <div className="text-xs text-gray-400 mb-1">Reward</div>
+                    <div className="font-semibold text-green-400">${referral.reward_amount.toLocaleString()}</div>
                   </div>
 
                   <div>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        referral.status === 'active'
+                        referral.reward_claimed
                           ? 'bg-green-600 text-white'
                           : 'bg-yellow-600 text-white'
                       }`}
                     >
-                      {referral.status}
+                      {referral.reward_claimed ? '✓ Claimed' : 'Pending'}
                     </span>
                   </div>
                 </div>
@@ -266,7 +305,7 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
 
         {referrals.length === 0 && (
           <div className="text-center py-12">
-            <Users className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-600" />
             <div className="text-gray-400 mb-2">No referrals yet</div>
             <div className="text-sm text-gray-500">Share your referral link to get started</div>
           </div>
@@ -285,12 +324,12 @@ export default function Earn({ userEmail = 'user@example.com', onNotify = () => 
           <div className="bg-gray-800/50 rounded-lg p-4">
             <div className="text-3xl mb-2">2️⃣</div>
             <div className="font-semibold text-white mb-2">They Sign Up</div>
-            <div className="text-sm text-gray-400">Your referrals create an account and start investing</div>
+            <div className="text-sm text-gray-400">Your referrals create an account using your referral code</div>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-4">
             <div className="text-3xl mb-2">3️⃣</div>
-            <div className="font-semibold text-white mb-2">Earn Together</div>
-            <div className="text-sm text-gray-400">You both receive rewards based on their investment activity</div>
+            <div className="font-semibold text-white mb-2">Earn $5</div>
+            <div className="text-sm text-gray-400">You receive $5 instantly when they complete registration</div>
           </div>
         </div>
       </div>

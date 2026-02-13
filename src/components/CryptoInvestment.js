@@ -3,6 +3,7 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Eye } from 'lucide-react';
 
 const coins = [
+  { symbol: 'EXACOIN', name: 'ExaCoin', price: 125.50, icon: 'https://cryptologos.cc/logos/stellar-xlm-logo.png', isHot: true, change: 45.2 },
   { symbol: 'BTC', name: 'Bitcoin', price: 64444, icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' },
   { symbol: 'ETH', name: 'Ethereum', price: 3200, icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
   { symbol: 'BNB', name: 'Binance Coin', price: 420, icon: 'https://cryptologos.cc/logos/bnb-bnb-logo.png' },
@@ -55,7 +56,14 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
             const isPositive = change >= 0;
             
             return (
-              <li key={c.symbol} className="flex justify-between items-center p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
+              <li key={c.symbol} className={`flex justify-between items-center p-4 rounded-lg hover:bg-gray-600 transition-colors relative ${
+                c.isHot ? 'bg-gradient-to-r from-orange-900/30 to-gray-700 border-2 border-orange-500' : 'bg-gray-700'
+              }`}>
+                {c.isHot && (
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                    🔥 HOT
+                  </div>
+                )}
                 <div className="flex items-center space-x-4 flex-1">
                   <img 
                     src={c.icon} 
@@ -81,7 +89,7 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                     <div className="font-semibold text-lg">${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
                     <div className={`text-sm flex items-center justify-end ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                       {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                      {change ? `${change.toFixed(2)}%` : '0.00%'}
+                      {c.isHot ? `+${c.change.toFixed(2)}%` : change ? `${change.toFixed(2)}%` : '0.00%'}
                     </div>
                   </div>
                   <div className="flex space-x-2">
@@ -115,7 +123,14 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
           const isPositive = change >= 0;
           
           return (
-            <div key={c.symbol} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors">
+            <div key={c.symbol} className={`rounded-lg p-4 hover:bg-gray-600 transition-colors relative ${
+              c.isHot ? 'bg-gradient-to-br from-orange-900/30 to-gray-700 border-2 border-orange-500' : 'bg-gray-700'
+            }`}>
+              {c.isHot && (
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                  🔥 HOT
+                </div>
+              )}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-3">
                   <img 
@@ -131,7 +146,7 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                 </div>
                 <div className={`flex items-center text-sm font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                   {isPositive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {change ? `${change.toFixed(2)}%` : '0.00%'}
+                  {c.isHot ? `+${c.change.toFixed(2)}%` : change ? `${change.toFixed(2)}%` : '0.00%'}
                 </div>
               </div>
 

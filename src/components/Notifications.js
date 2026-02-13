@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, Check, TrendingUp, TrendingDown, DollarSign, Gift, AlertCircle, Info, CheckCircle } from 'lucide-react';
+import { Bell, X, TrendingUp, TrendingDown, DollarSign, Gift, AlertCircle, Info } from 'lucide-react';
 
 export default function Notifications({ onClose }) {
   const storage = require('../utils/storage').default;

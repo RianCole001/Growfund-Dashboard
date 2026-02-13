@@ -5,7 +5,42 @@ const symbolToId = {
   ADA: 'cardano',
   SOL: 'solana',
   DOT: 'polkadot',
+  EXACOIN: 'exacoin', // Placeholder for demo
 };
+
+// Generate bullish trend data for EXACOIN (demo coin)
+function generateExacoinBullishData(days = 7) {
+  const data = [];
+  const startPrice = 125.50;
+  let currentPrice = startPrice;
+  
+  for (let i = 0; i < days; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - (days - i - 1));
+    
+    // Generate bullish trend with upward bias
+    const dailyChange = (Math.random() * 0.08) + 0.02; // 2-10% daily increase
+    currentPrice = currentPrice * (1 + dailyChange);
+    
+    data.push([date.getTime(), currentPrice]);
+  }
+  
+  return data;
+}
+
+// Generate bullish market data for EXACOIN
+function generateExacoinMarketData() {
+  const startPrice = 125.50;
+  const currentPrice = startPrice * 1.45; // 45% increase
+  
+  return {
+    price: currentPrice,
+    change24h: 8.5,
+    change7d: 45.2,
+    change30d: 120.5,
+    market_cap: currentPrice * 1000000000, // Mock market cap
+  };
+}
 
 async function fetchPricesUSD(symbols = []) {
   const ids = symbols.map((s) => symbolToId[s]).filter(Boolean).join(',');
@@ -27,75 +62,66 @@ async function fetchPricesUSD(symbols = []) {
 
 // Fetch market data including 24h price change for provided symbols
 async function fetchMarketData(symbols = []) {
-  const ids = symbols.map((s) => symbolToId[s]).filter(Boolean).join(',');
-  if (!ids) return {};
-  // Request multiple period changes (24h, 7d, 30d)
-  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h,7d,30d`;
-  try {
-    const res = await fetch(url);
-    const json = await res.json();
-    const out = {};
-    if (json && json.length) {
-      json.forEach((entry) => {
-        // find symbol from id
-        const sym = Object.keys(symbolToId).find(k => symbolToId[k] === entry.id);
-        if (sym) {
-          out[sym] = {
-            price: entry.current_price,
-            change24h: entry.price_change_percentage_24h,
-            change7d: entry.price_change_percentage_7d_in_currency || entry.price_change_percentage_7d,
-            change30d: entry.price_change_percentage_30d_in_currency || entry.price_change_percentage_30d,
-          };
-        }
-      });
-    }
-    // Always attempt to fill missing prices using simple price endpoint
-    const simple = await fetchPricesUSD(symbols);
-    symbols.forEach((s) => {
-      if (!out[s] && simple[s]) out[s] = { price: simple[s], change24h: undefined };
-    });
-    // cache latest prices locally for offline/resilience
-    try { if (typeof localStorage !== 'undefined') localStorage.setItem('coingecko_prices', JSON.stringify(out)); } catch(e) {}
-    return out;
-  } catch (e) {
-    // On error, try to return simple prices if possible
+  const out = {};
+  
+  // Handle EXACOIN separately
+  if (symbols.includes('EXACOIN')) {
+    out['EXACOIN'] = generateExacoinMarketData();
+  }
+  
+  const nonExaSymbols = symbols.filter(s => s !== 'EXACOIN');
+  const ids = nonExaSymbols.map((s) => symbolToId[s]).filter(Boolean).join(',');
+  
+  if (ids) {
+    // Request multiple period changes (24h, 7d, 30d)
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h,7d,30d`;
     try {
-      const simple = await fetchPricesUSD(symbols);
-      const out = {};
-      symbols.forEach((s) => {
-        if (simple[s]) out[s] = { price: simple[s], change24h: undefined };
-      });
-      // attempt to load cached prices if simple also empty
-      if (Object.keys(out).length === 0) {
-        try {
-          const raw = (typeof localStorage !== 'undefined' && localStorage.getItem('coingecko_prices')) || null;
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            symbols.forEach((s) => { if (parsed[s]) out[s] = parsed[s]; });
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json && json.length) {
+        json.forEach((entry) => {
+          // find symbol from id
+          const sym = Object.keys(symbolToId).find(k => symbolToId[k] === entry.id);
+          if (sym) {
+            out[sym] = {
+              price: entry.current_price,
+              change24h: entry.price_change_percentage_24h,
+              change7d: entry.price_change_percentage_7d_in_currency || entry.price_change_percentage_7d,
+              change30d: entry.price_change_percentage_30d_in_currency || entry.price_change_percentage_30d,
+            };
           }
-        } catch (e2) {}
-      } else {
-        try { if (typeof localStorage !== 'undefined') localStorage.setItem('coingecko_prices', JSON.stringify(out)); } catch(e) {}
+        });
       }
-      return out;
-    } catch (e2) {
-      // last resort: return cached prices if present
+    } catch (e) {
+      // Fallback to simple prices
       try {
-        const raw = (typeof localStorage !== 'undefined' && localStorage.getItem('coingecko_prices')) || null;
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const out = {};
-          symbols.forEach((s) => { if (parsed[s]) out[s] = parsed[s]; });
-          return out;
-        }
-      } catch (e3) {}
-      return {};
+        const simple = await fetchPricesUSD(nonExaSymbols);
+        nonExaSymbols.forEach((s) => {
+          if (!out[s] && simple[s]) out[s] = { price: simple[s], change24h: undefined };
+        });
+      } catch (e2) {}
     }
   }
+  
+  // Cache latest prices locally for offline/resilience
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('coingecko_prices', JSON.stringify(out)); } catch(e) {}
+  return out;
 }
 
 // Fetch coin market chart + additional metrics for a single symbol
 async function fetchCoinMarketChart(symbol, days = 7) {
+  // Handle EXACOIN specially with bullish demo data
+  if (symbol === 'EXACOIN') {
+    const prices = generateExacoinBullishData(days);
+    const marketData = generateExacoinMarketData();
+    return {
+      prices,
+      current_price: marketData.price,
+      market_cap: marketData.market_cap,
+      change24h: marketData.change24h,
+    };
+  }
+  
   const id = symbolToId[symbol];
   if (!id) return {};
   try {
@@ -114,5 +140,5 @@ async function fetchCoinMarketChart(symbol, days = 7) {
   }
 }
 
-const coingecko = { fetchPricesUSD, symbolToId, fetchMarketData, fetchCoinMarketChart };
+const coingecko = { fetchPricesUSD, symbolToId, fetchMarketData, fetchCoinMarketChart, generateExacoinBullishData, generateExacoinMarketData };
 export default coingecko;

@@ -1,222 +1,427 @@
 import React, { useMemo, useState } from 'react';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts';
+import { TrendingUp, Home, DollarSign, Calendar, Zap, Award, Info, X } from 'lucide-react';
 
 const plans = [
-  { id: 'RE_PLOT', name: 'Residential Plots', details: 'Developed residential plots & land parcels', min: 3000, appRate: 0.035, rentYield: 0.00, expenseRate: 0.01 },
-  { id: 'RE_MIX', name: 'Mixed-Use & Condos', details: 'Mixed-use developments and high-quality condos', min: 15000, appRate: 0.06, rentYield: 0.045, expenseRate: 0.02 },
-  { id: 'RE_HOTEL', name: 'Hotel Development', details: 'Hotel & hospitality projects with premium returns', min: 50000, appRate: 0.12, rentYield: 0.08, expenseRate: 0.035 },
+  { 
+    id: 'RE_BASIC', 
+    name: 'Starter Property', 
+    details: 'Entry-level real estate with steady 20% monthly returns',
+    min: 1000, 
+    rate: 20,
+    icon: Home,
+    color: 'from-blue-400 via-cyan-500 to-blue-600',
+    badge: '🏠 Starter'
+  },
+  { 
+    id: 'RE_STANDARD', 
+    name: 'Premium Property', 
+    details: 'Mid-tier real estate with 30% monthly returns',
+    min: 5000, 
+    rate: 30,
+    icon: TrendingUp,
+    color: 'from-purple-400 via-pink-500 to-purple-600',
+    badge: '🏢 Premium'
+  },
+  { 
+    id: 'RE_LUXURY', 
+    name: 'Luxury Estate', 
+    details: 'High-end real estate with premium 50% monthly returns',
+    min: 20000, 
+    rate: 50,
+    icon: Award,
+    color: 'from-yellow-400 via-orange-500 to-red-600',
+    badge: '👑 Luxury'
+  },
 ];
 
-function computeProjection(principal, years, appRate, rentYield, expenseRate) {
+function computeProjection(principal, months, monthlyRate) {
   const arr = [];
-  let propertyValue = Number(principal) || 0;
-  let cumulativeNet = propertyValue; // initial capital in asset
-  for (let y = 0; y <= years; y++) {
-    if (y === 0) {
-      arr.push({ year: y, propertyValue: Math.round(propertyValue), rentIncome: 0, expenses: 0, netCashflow: 0, totalNet: Math.round(cumulativeNet) });
+  let value = Number(principal) || 0;
+  
+  for (let m = 0; m <= months; m++) {
+    if (m === 0) {
+      arr.push({ 
+        month: m, 
+        value: Math.round(value), 
+        label: `M${m}`, 
+        gain: 0,
+        monthlyGain: 0
+      });
       continue;
     }
-    // appreciation
-    propertyValue = propertyValue * (1 + appRate);
-    const rentIncome = (Number(principal) || 0) * rentYield; // simplified constant rent on original capital
-    const expenses = (Number(principal) || 0) * expenseRate;
-    const netCashflow = rentIncome - expenses;
-    cumulativeNet = Math.round(propertyValue + (arr.slice(0, y).reduce((s, r) => s + r.netCashflow, 0) + netCashflow));
-    arr.push({ year: y, propertyValue: Math.round(propertyValue), rentIncome: Math.round(rentIncome), expenses: Math.round(expenses), netCashflow: Math.round(netCashflow), totalNet: cumulativeNet });
+    
+    const monthlyGain = value * (monthlyRate / 100);
+    value = value + monthlyGain;
+    
+    arr.push({ 
+      month: m, 
+      value: Math.round(value), 
+      label: `M${m}`, 
+      gain: Math.round(value - (Number(principal) || 0)),
+      monthlyGain: Math.round(monthlyGain)
+    });
   }
   return arr;
 }
 
-export default function RealEstate({ onInvest = () => {} }) {
+export default function RealEstate({ balance = 0, onInvest = () => {} }) {
   const [selected, setSelected] = useState(plans[0].id);
   const [amount, setAmount] = useState(plans[0].min);
-  const [years, setYears] = useState(10);
+  const [months, setMonths] = useState(6);
   const [detailOpen, setDetailOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [hoveredPlan, setHoveredPlan] = useState(null);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const plan = plans.find((p) => p.id === selected);
+  const PlanIcon = plan.icon;
 
-  // if user changes plan, adjust amount to min
   const selectPlan = (id) => {
     const p = plans.find((pp) => pp.id === id);
     setSelected(id);
     setAmount(p.min);
   };
 
-  const data = useMemo(() => computeProjection(amount, years, plan.appRate, plan.rentYield, plan.expenseRate), [amount, years, plan]);
+  const data = useMemo(() => computeProjection(amount, months, plan.rate), [amount, months, plan]);
 
-  const projected = data[data.length - 1] || { totalNet: 0, propertyValue: 0 };
-  const profit = projected.totalNet - (Number(amount) || 0);
+  const projected = data[data.length - 1] || { value: 0, gain: 0 };
+  const profit = projected.gain;
   const roiPct = ((profit / (Number(amount) || 1)) * 100).toFixed(1);
 
   const doInvest = () => {
-    const payload = { asset: plan.id, name: plan.name, amount: Number(amount), date: new Date().toISOString(), details: 'Real Estate - ' + plan.name };
+    if (amount < plan.min) {
+      alert(`Minimum investment for ${plan.name} is $${plan.min}`);
+      return;
+    }
+    if (amount > balance) {
+      alert('Insufficient balance');
+      return;
+    }
+    
+    const payload = { 
+      asset: plan.id, 
+      name: plan.name, 
+      amount: Number(amount), 
+      months,
+      rate: plan.rate,
+      date: new Date().toISOString(), 
+      details: 'Real Estate - ' + plan.name 
+    };
     onInvest(payload);
     setConfirmOpen(false);
   };
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-white">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-blue-400">Real Estate — Capital Growth & Income</h2>
-          <p className="text-sm text-gray-400">Model returns, compare plans, and invest in curated real estate strategies.</p>
-        </div>
-        <div className="text-right text-sm text-gray-300">
-          <div>Interested in a demo valuation? Use the simulator below.</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-1 space-y-3">
-          {plans.map((p) => (
-            <div key={p.id} className={`p-3 rounded ${selected === p.id ? 'bg-gray-700 ring-2 ring-blue-500' : 'bg-gray-700'} `}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{p.name}</div>
-                  <div className="text-xs text-gray-400">{p.details}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-300">Est. {Math.round(p.appRate * 100)}% p.a.</div>
-                  <div className="text-xs text-gray-400">Min ${p.min.toLocaleString()}</div>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                <div className="text-xs text-gray-400">Rent yield {Math.round(p.rentYield * 100)}% • Expenses {Math.round(p.expenseRate * 100)}%</div>
-                <div className="space-x-2">
-                  <button onClick={() => selectPlan(p.id)} className={`px-2 py-1 rounded ${selected === p.id ? 'bg-blue-600' : 'bg-gray-700'}`}>Select</button>
-                  <button onClick={() => { setSelected(p.id); setDetailOpen(true); }} className="px-2 py-1 rounded bg-gray-700">Details</button>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <div className="bg-gray-700 p-3 rounded">
-            <label className="block text-sm text-gray-300">Investment amount</label>
-            <input type="number" value={amount} min={plan.min} onChange={(e) => setAmount(Number(e.target.value))} className="mt-2 w-full bg-gray-800 rounded p-2" />
-            <label className="block text-sm text-gray-300 mt-3">Duration (years)</label>
-            <input type="range" min={1} max={30} value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full mt-2" />
-            <div className="text-sm text-gray-300 mt-1">{years} year{years > 1 ? 's' : ''}</div>
-
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button onClick={() => setConfirmOpen(true)} className="w-full bg-green-600 px-3 py-2 rounded">Invest ${Math.round(amount)}</button>
-              <button onClick={() => { setAmount(plan.min); setYears(10); }} className="w-full bg-gray-700 px-3 py-2 rounded">Reset</button>
-            </div>
-
-            <div className="mt-4 text-sm text-gray-300">
-              <div>Projected total: <strong>${projected.totalNet.toLocaleString()}</strong></div>
-              <div>Estimated profit: <strong className={`${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>${profit.toLocaleString()}</strong></div>
-              <div>ROI: <strong>{roiPct}%</strong></div>
-            </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl p-6 sm:p-8 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center mb-2">
+              <Home className="w-6 h-6 mr-2" />
+              Real Estate Investment
+            </h2>
+            <p className="text-amber-100 text-sm">Build wealth through premium real estate with monthly compound returns</p>
           </div>
-        </div>
-
-        <div className="col-span-2 bg-gray-900 p-4 rounded">
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="year" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
-                <Line type="monotone" dataKey="totalNet" stroke="#F59E0B" strokeWidth={2} dot={{ r: 2 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-800 p-3 rounded">
-              <div className="text-sm text-gray-300">Projected Value</div>
-              <div className="text-lg font-bold">${projected.propertyValue.toLocaleString()}</div>
-            </div>
-            <div className="bg-gray-800 p-3 rounded">
-              <div className="text-sm text-gray-300">Projected Income (annual)</div>
-              <div className="text-lg font-bold">${Math.round((Number(amount) || 0) * plan.rentYield).toLocaleString()}</div>
-            </div>
-            <div className="bg-gray-800 p-3 rounded">
-              <div className="text-sm text-gray-300">Net Profit</div>
-              <div className={`text-lg font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>${profit.toLocaleString()}</div>
-            </div>
-          </div>
-
-          <div className="mt-4 bg-gray-800 p-3 rounded">
-            <h4 className="text-sm text-gray-300 mb-2">Why invest in this plan?</h4>
-            <ul className="text-xs text-gray-400 space-y-1">
-              <li>• Diversification into real assets with steady income streams.</li>
-              <li>• Combination of capital appreciation and rental yield.</li>
-              <li>• Professional asset management and curated opportunities.</li>
-            </ul>
+          <div className="bg-white/10 backdrop-blur-sm px-5 py-3 rounded-lg border border-white/20">
+            <div className="text-xs text-amber-100 mb-1">Available Balance</div>
+            <div className="text-xl sm:text-2xl font-bold text-white">${Math.round(balance).toLocaleString()}</div>
           </div>
         </div>
       </div>
 
-      {/* Details modal */}
-      {detailOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-800 rounded-lg p-6 w-11/12 md:w-2/3 lg:w-1/2 text-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">{plan.name} — Details</h3>
-              <button onClick={() => setDetailOpen(false)} className="px-2 py-1 bg-gray-700 rounded">Close</button>
-            </div>
-            <div className="text-sm text-gray-300 space-y-3">
-              <p>{plan.details}</p>
-              <p><strong>Assumptions:</strong> {Math.round(plan.appRate * 100)}% annual appreciation, {Math.round(plan.rentYield * 100)}% rent yield, {Math.round(plan.expenseRate * 100)}% estimated expenses.</p>
-              <div className="mt-3">
-                <h4 className="font-semibold">Year-by-year breakdown</h4>
-                <div className="overflow-auto mt-2">
-                  <table className="w-full text-sm">
-                    <thead className="text-left text-gray-400">
-                      <tr>
-                        <th className="p-2">Year</th>
-                        <th className="p-2">Property Value</th>
-                        <th className="p-2">Annual Rent</th>
-                        <th className="p-2">Expenses</th>
-                        <th className="p-2">Net Cashflow</th>
-                        <th className="p-2">Total Net</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.map((r) => (
-                        <tr key={r.year} className="odd:bg-gray-700 even:bg-gray-600">
-                          <td className="p-2">{r.year}</td>
-                          <td className="p-2">${r.propertyValue.toLocaleString()}</td>
-                          <td className="p-2">${r.rentIncome.toLocaleString()}</td>
-                          <td className="p-2">${r.expenses.toLocaleString()}</td>
-                          <td className="p-2">${r.netCashflow.toLocaleString()}</td>
-                          <td className="p-2">${r.totalNet.toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+      {/* Plan Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {plans.map((p) => {
+          const CardIcon = p.icon;
+          const isSelected = selected === p.id;
+          const isHovered = hoveredPlan === p.id;
+          
+          return (
+            <div 
+              key={p.id} 
+              onClick={() => selectPlan(p.id)}
+              onMouseEnter={() => setHoveredPlan(p.id)}
+              onMouseLeave={() => setHoveredPlan(null)}
+              className={`relative bg-gray-800 rounded-lg p-5 cursor-pointer transition-all transform ${
+                isSelected 
+                  ? 'ring-2 ring-amber-500 shadow-lg scale-105' 
+                  : 'hover:shadow-md hover:scale-102'
+              }`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-0 ${isSelected ? 'opacity-5' : ''} rounded-lg transition-opacity`}></div>
+              
+              <div className="absolute -top-2 -right-2 bg-amber-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                {p.badge}
+              </div>
+
+              <div className="relative z-10">
+                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${p.color} flex items-center justify-center mb-3 shadow-md`}>
+                  <CardIcon className="w-6 h-6 text-white" />
+                </div>
+                
+                <div className="mb-3">
+                  <h3 className="text-lg font-bold text-white mb-1">{p.name}</h3>
+                  <div className="text-3xl font-bold text-amber-400">
+                    {p.rate}%
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Monthly Return</div>
+                </div>
+
+                <p className="text-sm text-gray-400 mb-4">{p.details}</p>
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+                  <span className="text-xs text-gray-500">Min. ${p.min.toLocaleString()}</span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); selectPlan(p.id); }}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                      isSelected 
+                        ? 'bg-amber-600 text-white' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {isSelected ? 'Selected' : 'Select'}
+                  </button>
                 </div>
               </div>
             </div>
-            <div className="mt-4 flex justify-end">
-              <button onClick={() => setDetailOpen(false)} className="px-3 py-1 rounded bg-gray-700">Close</button>
+          );
+        })}
+      </div>
+
+      {/* Main Content */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left Panel - Controls */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
+              <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
+                <DollarSign className="w-4 h-4 mr-2 text-green-400" />
+                Investment Amount
+              </label>
+              <input 
+                type="number" 
+                value={amount} 
+                onChange={(e) => setAmount(Number(e.target.value))} 
+                className="w-full bg-gray-800 rounded-xl p-4 text-2xl font-bold text-center focus:ring-4 focus:ring-amber-500 focus:outline-none transition-all" 
+              />
+              <div className="flex justify-between mt-3 text-xs">
+                <span className="text-gray-500">Min: ${plan.min.toLocaleString()}</span>
+                <span className="text-gray-500">Max: ${balance.toLocaleString()}</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                {[25, 50, 75, 100].map((percent) => (
+                  <button
+                    key={percent}
+                    onClick={() => setAmount(Math.round(balance * percent / 100))}
+                    className="bg-gray-600 hover:bg-amber-600 py-2 rounded-lg text-xs font-bold transition-all transform hover:scale-105"
+                  >
+                    {percent}%
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
+              <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
+                <Calendar className="w-4 h-4 mr-2 text-purple-400" />
+                Investment Period
+              </label>
+              <input 
+                type="range" 
+                min={1} 
+                max={60} 
+                value={months} 
+                onChange={(e) => setMonths(Number(e.target.value))} 
+                className="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-amber-600" 
+              />
+              <div className="flex justify-between mt-3">
+                <span className="text-2xl font-black text-purple-400">{months}</span>
+                <span className="text-sm text-gray-400">{months === 1 ? 'Month' : 'Months'}</span>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-600/20 to-orange-600/20 border border-amber-600/30 p-5 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-300">Expected Returns</span>
+                <Award className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="text-3xl font-bold text-amber-400 mb-1">
+                +${profit.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-400">
+                {roiPct}% ROI over {months} {months === 1 ? 'month' : 'months'}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <button 
+                onClick={() => setConfirmOpen(true)} 
+                className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 px-6 py-4 rounded-lg font-semibold text-lg transition-all transform hover:scale-105 shadow-lg"
+              >
+                Invest ${Math.round(amount).toLocaleString()}
+              </button>
+              <button 
+                onClick={() => { setAmount(plan.min); setMonths(6); }} 
+                className="w-full bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+              <div className="flex items-start space-x-3">
+                <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-gray-300">
+                  <strong className="text-white">Monthly Compounding:</strong> Returns are calculated and reinvested each month for exponential growth.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel - Charts & Stats */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Main Chart */}
+            <div className="bg-gray-900 p-4 rounded-xl border border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-300 mb-4">Growth Projection</h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.6}/>
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="label" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1F2937', 
+                        border: '2px solid #F59E0B', 
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+                      }}
+                      formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Value']} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#F59E0B" 
+                      strokeWidth={3}
+                      fill="url(#colorValue)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Monthly Gains Chart */}
+            <div className="bg-gray-900 p-4 rounded-xl border border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-300 mb-4">Monthly Gains</h3>
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.slice(1)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="label" stroke="#9CA3AF" style={{ fontSize: '10px' }} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
+                      formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Gain']} 
+                    />
+                    <Bar dataKey="monthlyGain" fill="#10B981" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+                <div className="text-xs text-gray-400 mb-1">Initial Investment</div>
+                <div className="text-xl font-bold text-white">${amount.toLocaleString()}</div>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+                <div className="text-xs text-gray-400 mb-1">Final Value</div>
+                <div className="text-xl font-bold text-amber-400">${projected.value.toLocaleString()}</div>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+                <div className="text-xs text-gray-400 mb-1">Total Gain</div>
+                <div className="text-xl font-bold text-green-400">+${profit.toLocaleString()}</div>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Confirm modal */}
+      {/* Confirmation Modal */}
       {confirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-800 rounded-lg p-6 w-96 text-white">
-            <h3 className="text-lg font-semibold mb-2">Confirm Real Estate Investment</h3>
-            <div className="text-sm text-gray-300 mb-2">Plan: <strong className="text-white">{plan.name}</strong></div>
-            <div className="text-sm text-gray-300">Amount: <strong className="text-white">${Number(amount).toLocaleString()}</strong></div>
-            <div className="text-sm text-gray-300">Duration: <strong className="text-white">{years} year{years > 1 ? 's' : ''}</strong></div>
-            <div className="text-sm text-gray-300 mt-3">Projected net value: <strong className="text-white">${projected.totalNet.toLocaleString()}</strong></div>
-            <div className={`text-sm mt-1 ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>Estimated profit: <strong className="text-white">${profit.toLocaleString()}</strong></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-700">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Home className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Confirm Investment</h3>
+              <p className="text-sm text-gray-400">Review your real estate investment details</p>
+            </div>
+            
+            <div className="space-y-3 mb-6 bg-gray-700 p-4 rounded-lg">
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Property</span>
+                <span className="font-semibold text-white">{plan.name}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Amount</span>
+                <span className="font-bold text-xl text-white">${Number(amount).toLocaleString()}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Duration</span>
+                <span className="font-semibold text-white">{months} {months === 1 ? 'Month' : 'Months'}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Monthly Rate</span>
+                <span className="font-semibold text-white">{plan.rate}%</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Final Value</span>
+                <span className="font-semibold text-amber-400">${projected.value.toLocaleString()}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Expected Gain</span>
+                <span className="font-bold text-lg text-green-400">+${profit.toLocaleString()}</span>
+              </div>
+            </div>
 
-            <div className="mt-6 flex justify-end space-x-2">
-              <button onClick={() => setConfirmOpen(false)} className="px-3 py-1 rounded bg-gray-700">Cancel</button>
-              <button onClick={doInvest} className="px-3 py-1 rounded bg-green-600">Confirm</button>
+            <div className="flex space-x-3">
+              <button 
+                onClick={() => setConfirmOpen(false)} 
+                className="flex-1 px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={doInvest} 
+                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 font-semibold transition-all transform hover:scale-105"
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      <div className="text-center bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <p className="text-xs text-gray-400">
+          <span className="font-medium">Disclaimer:</span> Projections are for illustrative purposes. Actual returns may vary based on market conditions.
+        </p>
+      </div>
     </div>
   );
 }

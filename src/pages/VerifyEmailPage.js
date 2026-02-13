@@ -1,29 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import toast from 'react-hot-toast';
+import { userAuthAPI } from '../services/api';
 
 export default function VerifyEmailPage() {
   const [params] = useSearchParams();
-  const token = params.get('token');
-  const { verifyEmail } = useAuth();
+  const token = params.get('token') || localStorage.getItem('verification_token');
   const [status, setStatus] = useState('verifying');
   const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
     const run = async () => {
+      if (!token) {
+        setStatus('error');
+        return;
+      }
+
       try {
-        await verifyEmail(token);
+        await userAuthAPI.verifyEmail(token);
         if (!mounted) return;
         setStatus('ok');
+        localStorage.removeItem('verification_token');
+        toast.success('Email verified! Redirecting to login...');
         setTimeout(() => navigate('/login'), 1500);
-      } catch (e) {
+      } catch (err) {
+        if (!mounted) return;
         setStatus('error');
+        toast.error('Invalid or expired token');
       }
     };
-    if (token) run();
+
+    run();
     return () => { mounted = false; };
-  }, [token, verifyEmail, navigate]);
+  }, [token, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">

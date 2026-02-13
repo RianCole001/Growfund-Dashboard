@@ -7,48 +7,52 @@ const storage = require('../utils/storage').default;
 export default function CapitalPlan({ investments = [], balance = 0, onInvest = () => {}, onNotify = () => {} }) {
   const plans = [
     { 
-      key: 'starter', 
-      name: 'Starter', 
-      rate: 0.05, 
+      key: 'basic', 
+      name: 'Basic', 
+      rate: 20, 
       min: 100, 
-      desc: 'Perfect for beginners. Low-risk strategy with steady growth.',
+      desc: 'Steady growth with 20% monthly returns. Perfect for beginners.',
       icon: Shield,
       color: 'from-cyan-400 via-blue-500 to-blue-600',
       badge: '🛡️ Safe',
-      features: ['Low Risk', 'Flexible Terms', 'Easy Exit']
+      features: ['20% Monthly', 'Low Risk', 'Flexible Terms']
     },
     { 
-      key: 'intermediate', 
-      name: 'Intermediate', 
-      rate: 0.08, 
+      key: 'standard', 
+      name: 'Standard', 
+      rate: 30, 
       min: 500, 
-      desc: 'Balanced approach. Moderate risk with solid returns.',
+      desc: 'Balanced growth with 30% monthly returns. Most popular choice.',
       icon: Target,
       color: 'from-purple-400 via-pink-500 to-purple-600',
       badge: '⚡ Popular',
-      features: ['Balanced Risk', 'Higher Returns', 'Monthly Reports']
+      features: ['30% Monthly', 'Balanced Risk', 'Monthly Reports']
     },
     { 
-      key: 'advanced', 
-      name: 'Advanced', 
-      rate: 0.12, 
+      key: 'advance', 
+      name: 'Advance', 
+      rate: 40, 
       min: 2000, 
-      desc: 'Maximum growth potential. Higher risk, higher reward.',
+      desc: 'Maximum growth with 40%, 50%, or 60% monthly returns.',
       icon: Zap,
       color: 'from-orange-400 via-red-500 to-pink-600',
       badge: '🚀 Premium',
-      features: ['High Returns', 'Priority Support', 'Advanced Tools']
+      features: ['40-60% Monthly', 'High Returns', 'Priority Support']
     },
   ];
 
   const [selected, setSelected] = useState(plans[0].key);
   const [amount, setAmount] = useState(1000);
-  const [years, setYears] = useState(5);
+  const [months, setMonths] = useState(6);
+  const [advanceRate, setAdvanceRate] = useState(40);
   const [showOnboard, setShowOnboard] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [hoveredPlan, setHoveredPlan] = useState(null);
+
+  const openHelp = () => setShowHelpModal(true);
+  const closeHelp = () => setShowHelpModal(false);
 
   useEffect(() => {
     const seen = storage.get('seenCapitalOnboarding', false);
@@ -58,28 +62,33 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const dismissOnboard = () => {
     storage.set('seenCapitalOnboarding', true);
     setShowOnboard(false);
-    if (typeof onNotify === 'function') onNotify('Welcome to Capital Appreciation Plan');
-  };
-
-  const openHelp = () => setShowHelpModal(true);
-  const closeHelp = () => setShowHelpModal(false); 
+    if (typeof onNotify === 'function') onNotify('Welcome to Capital Investment Plan');
+  }; 
 
   const selectedPlan = plans.find((p) => p.key === selected);
   const Icon = selectedPlan.icon;
+  
+  // Get the growth rate for calculations
+  const getGrowthRate = () => {
+    if (selected === 'advance') return advanceRate;
+    return selectedPlan.rate;
+  };
 
   const data = useMemo(() => {
     const arr = [];
     let val = Number(amount) || 0;
-    for (let y = 0; y <= years; y++) {
-      if (y === 0) arr.push({ year: y, value: Math.round(val), label: `Y${y}`, gain: 0 });
+    const growthRate = getGrowthRate() / 100;
+    
+    for (let m = 0; m <= months; m++) {
+      if (m === 0) arr.push({ month: m, value: Math.round(val), label: `M${m}`, gain: 0 });
       else {
         const prevVal = val;
-        val = val * (1 + selectedPlan.rate);
-        arr.push({ year: y, value: Math.round(val), label: `Y${y}`, gain: Math.round(val - prevVal) });
+        val = val * (1 + growthRate);
+        arr.push({ month: m, value: Math.round(val), label: `M${m}`, gain: Math.round(val - prevVal) });
       }
     }
     return arr;
-  }, [amount, years, selectedPlan]);
+  }, [amount, months, selected, advanceRate]);
 
   const finalValue = data[data.length - 1]?.value || 0;
   const totalGain = finalValue - amount;
@@ -94,7 +103,15 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
       alert('Insufficient balance');
       return;
     }
-    const pay = { amount: Number(amt || 0), plan: plan.name, name: `Capital Plan - ${plan.name}`, years };
+    const growthRate = selected === 'advance' ? advanceRate : plan.rate;
+    const pay = { 
+      amount: Number(amt || 0), 
+      plan: plan.name, 
+      plan_type: selected,
+      name: `Capital Plan - ${plan.name}`, 
+      months,
+      growth_rate: growthRate
+    };
     setConfirmData(pay);
     setConfirmOpen(true);
   };
@@ -102,7 +119,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const doConfirmInvest = () => {
     if (!confirmData) return;
     onInvest({ ...confirmData, date: new Date().toISOString() });
-    if (typeof onNotify === 'function') onNotify(`Invested $${Number(confirmData.amount).toLocaleString()} in ${confirmData.plan}`);
+    if (typeof onNotify === 'function') onNotify(`Invested ${Number(confirmData.amount).toLocaleString()} in ${confirmData.plan}`);
     setConfirmOpen(false);
     setConfirmData(null);
     setAmount(1000);
@@ -116,9 +133,9 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center mb-2">
               <TrendingUp className="w-6 h-6 mr-2" />
-              Capital Appreciation Plan
+              Capital Investment Plan
             </h2>
-            <p className="text-blue-100 text-sm">Grow your wealth with structured investment strategies</p>
+            <p className="text-blue-100 text-sm">Grow your wealth with monthly compound returns</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm px-5 py-3 rounded-lg border border-white/20">
             <div className="text-xs text-blue-100 mb-1">Available Balance</div>
@@ -137,7 +154,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 <div className="font-semibold text-white">Getting Started</div>
               </div>
               <div className="text-sm text-blue-50 mb-3">
-                Choose your investment strategy, set your goals, and watch your money grow over time.
+                Choose your investment plan, set your duration in months, and watch your money grow with monthly compound returns.
               </div>
               <button onClick={openHelp} className="text-sm font-medium text-blue-100 hover:text-white underline">
                 Learn more about plans →
@@ -186,9 +203,9 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 <div className="mb-3">
                   <h3 className="text-lg font-bold text-white mb-1">{p.name}</h3>
                   <div className="text-3xl font-bold text-blue-400">
-                    {Math.round(p.rate * 100)}%
+                    {p.key === 'advance' ? '40-60%' : p.rate}%
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">Annual Return</div>
+                  <div className="text-xs text-gray-400 mt-1">Monthly Return</div>
                 </div>
 
                 <p className="text-sm text-gray-400 mb-4">{p.desc}</p>
@@ -229,7 +246,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               <Icon className="w-5 h-5 mr-2 text-blue-400" />
               Growth Projection
             </h3>
-            <p className="text-sm text-gray-400">Investment growth with {selectedPlan.name} Plan</p>
+            <p className="text-sm text-gray-400">Monthly compound growth with {selectedPlan.name} Plan</p>
           </div>
           <div className="mt-4 sm:mt-0 bg-gray-700 px-5 py-3 rounded-lg border border-gray-600">
             <div className="text-xs text-gray-400 mb-1">Projected Value</div>
@@ -278,7 +295,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                   <XAxis dataKey="label" stroke="#9CA3AF" style={{ fontSize: '10px' }} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
-                    formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Yearly Gain']} 
+                    formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Monthly Gain']} 
                   />
                   <Bar dataKey="gain" fill="#10B981" radius={[8, 8, 0, 0]} />
                 </BarChart>
@@ -323,16 +340,40 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               <input 
                 type="range" 
                 min={1} 
-                max={30} 
-                value={years} 
-                onChange={(e) => setYears(Number(e.target.value))} 
+                max={60} 
+                value={months} 
+                onChange={(e) => setMonths(Number(e.target.value))} 
                 className="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600" 
               />
               <div className="flex justify-between mt-3">
-                <span className="text-2xl font-black text-purple-400">{years}</span>
-                <span className="text-sm text-gray-400">{years === 1 ? 'Year' : 'Years'}</span>
+                <span className="text-2xl font-black text-purple-400">{months}</span>
+                <span className="text-sm text-gray-400">{months === 1 ? 'Month' : 'Months'}</span>
               </div>
             </div>
+
+            {selected === 'advance' && (
+              <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
+                <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
+                  <Zap className="w-4 h-4 mr-2 text-yellow-400" />
+                  Growth Rate
+                </label>
+                <div className="flex gap-2">
+                  {[40, 50, 60].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => setAdvanceRate(rate)}
+                      className={`flex-1 py-2 rounded-lg font-bold transition-all ${
+                        advanceRate === rate
+                          ? 'bg-yellow-600 text-white'
+                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      }`}
+                    >
+                      {rate}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="bg-gray-700 border border-gray-600 p-5 rounded-lg">
               <div className="flex items-center justify-between mb-2">
@@ -343,7 +384,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 +${totalGain.toLocaleString()}
               </div>
               <div className="text-sm text-gray-400">
-                {percentageGain}% growth over {years} {years === 1 ? 'year' : 'years'}
+                {percentageGain}% growth over {months} {months === 1 ? 'month' : 'months'}
               </div>
             </div>
 
@@ -388,7 +429,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                         <p className="text-sm text-gray-400 mb-3">{plan.desc}</p>
                         <div className="flex flex-wrap gap-2">
                           <span className="text-xs bg-gray-600 text-white px-3 py-1 rounded font-medium">
-                            {Math.round(plan.rate * 100)}% Annual Return
+                            {plan.key === 'advance' ? '40-60% Monthly Return' : `${plan.rate}% Monthly Return`}
                           </span>
                           <span className="text-xs bg-gray-600 text-gray-300 px-3 py-1 rounded">
                             Min. ${plan.min}
@@ -403,7 +444,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
 
             <div className="mt-6 bg-blue-600/10 border border-blue-600/30 p-4 rounded-lg">
               <p className="text-sm text-gray-300">
-                <strong className="text-white">Tip:</strong> Start with the Starter plan and scale up as you gain confidence.
+                <strong className="text-white">Tip:</strong> Start with the Basic plan and scale up as you gain confidence. All returns are calculated with monthly compounding.
               </p>
             </div>
           </div>
@@ -435,7 +476,12 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               <div className="h-px bg-gray-600"></div>
               <div className="flex justify-between py-2">
                 <span className="text-gray-400">Duration</span>
-                <span className="font-semibold text-white">{confirmData.years} {confirmData.years === 1 ? 'Year' : 'Years'}</span>
+                <span className="font-semibold text-white">{confirmData.months} {confirmData.months === 1 ? 'Month' : 'Months'}</span>
+              </div>
+              <div className="h-px bg-gray-600"></div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-400">Growth Rate</span>
+                <span className="font-semibold text-white">{confirmData.growth_rate}% Monthly</span>
               </div>
               <div className="h-px bg-gray-600"></div>
               <div className="flex justify-between py-2">
@@ -469,7 +515,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
 
       <div className="text-center bg-gray-800 p-4 rounded-lg border border-gray-700">
         <p className="text-xs text-gray-400">
-          <span className="font-medium">Disclaimer:</span> Projections are for illustrative purposes. Actual returns may vary.
+          <span className="font-medium">Disclaimer:</span> Projections are for illustrative purposes. Actual returns may vary based on market conditions.
         </p>
       </div>
     </div>
