@@ -1,0 +1,39 @@
+import React, { useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+
+export default function ResetPasswordPage() {
+  const [params] = useSearchParams();
+  const token = params.get('token');
+  const [password, setPassword] = useState('');
+  const [msg, setMsg] = useState('');
+  const { resetPassword } = useAuth();
+  const navigate = useNavigate();
+
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      await resetPassword(token, password);
+      setMsg('Password reset. Redirecting to login...');
+      setTimeout(() => navigate('/login'), 1200);
+    } catch (err) {
+      setMsg(err.message || 'Error');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+      <div className="max-w-md w-full bg-gray-800 p-6 rounded">
+        <h2 className="text-lg text-blue-400 mb-2">Reset password</h2>
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className="text-sm text-gray-300">New password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full bg-gray-700 p-2 rounded" />
+          </div>
+          <div><button className="bg-blue-600 px-3 py-2 rounded">Reset password</button></div>
+        </form>
+        {msg && <div className="mt-3 text-xs text-gray-300">{msg}</div>}
+      </div>
+    </div>
+  );
+}
