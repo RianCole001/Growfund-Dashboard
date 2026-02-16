@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { UserAuthProvider } from './auth/UserAuthContext';
 import { AdminAuthProvider } from './auth/AdminAuthContext';
+import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import LandingPage from './pages/LandingPage';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
@@ -32,7 +33,11 @@ root.render(
               <Route path="/reset" element={<ResetPasswordPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/app/*" element={<AppNew />} />
-              <Route path="/admin" element={<AdminApp />} />
+              <Route path="/admin" element={
+                <ProtectedAdminRoute>
+                  <AdminApp />
+                </ProtectedAdminRoute>
+              } />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>

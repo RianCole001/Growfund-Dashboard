@@ -107,35 +107,35 @@ export default function RegisterPage() {
       });
 
       if (referralCode) {
-        toast.success(`Registration successful! You earned $5 referral bonus!`);
+        toast.success(`Registration successful! You earned $5 referral bonus! Please login.`);
       } else {
-        toast.success('Registration successful! Please verify your email.');
+        toast.success('Registration successful! Please login with your credentials.');
       }
       
-      // Store verification token for next step
-      localStorage.setItem('verification_token', response.data.verification_token);
-      localStorage.setItem('pending_email', email);
-      
-      navigate('/verify');
+      // Redirect to login page
+      navigate('/login');
     } catch (err) {
       const errorData = err.response?.data || {};
       
       // Handle field-specific errors from backend
       if (typeof errorData === 'object') {
+        // Check if errors are nested in an 'errors' object
+        const errors = errorData.errors || errorData;
+        
         const backendErrors = {};
-        if (errorData.first_name) backendErrors.firstName = errorData.first_name[0];
-        if (errorData.last_name) backendErrors.lastName = errorData.last_name[0];
-        if (errorData.email) backendErrors.email = errorData.email[0];
-        if (errorData.password) backendErrors.password = errorData.password[0];
-        if (errorData.password2) backendErrors.password2 = errorData.password2[0];
-        if (errorData.referral_code) backendErrors.referralCode = errorData.referral_code[0];
+        if (errors.first_name) backendErrors.firstName = errors.first_name[0];
+        if (errors.last_name) backendErrors.lastName = errors.last_name[0];
+        if (errors.email) backendErrors.email = errors.email[0];
+        if (errors.password) backendErrors.password = errors.password[0];
+        if (errors.password2) backendErrors.password2 = errors.password2[0];
+        if (errors.referral_code) backendErrors.referralCode = errors.referral_code[0];
         
         if (Object.keys(backendErrors).length > 0) {
           setErrors(backendErrors);
           const firstError = Object.values(backendErrors)[0];
           toast.error(firstError);
         } else {
-          const errorMsg = errorData.error || errorData.detail || 'Registration failed';
+          const errorMsg = errorData.error || errorData.detail || errorData.message || 'Registration failed';
           toast.error(errorMsg);
         }
       } else {
