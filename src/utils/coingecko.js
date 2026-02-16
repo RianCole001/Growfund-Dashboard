@@ -11,7 +11,7 @@ const symbolToId = {
 // Generate bullish trend data for EXACOIN (demo coin)
 function generateExacoinBullishData(days = 7) {
   const data = [];
-  const startPrice = 125.50;
+  const startPrice = 60.00; // Set EXA coin base price to $60
   let currentPrice = startPrice;
   
   for (let i = 0; i < days; i++) {
@@ -30,8 +30,8 @@ function generateExacoinBullishData(days = 7) {
 
 // Generate bullish market data for EXACOIN
 function generateExacoinMarketData() {
-  const startPrice = 125.50;
-  const currentPrice = startPrice * 1.45; // 45% increase
+  const startPrice = 60.00; // Set EXA coin base price to $60
+  const currentPrice = startPrice * 1.45; // 45% increase from base
   
   return {
     price: currentPrice,

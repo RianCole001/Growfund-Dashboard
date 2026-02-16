@@ -16,30 +16,10 @@ export default function AdminWithdrawals() {
   const fetchWithdrawals = async () => {
     try {
       setLoading(true);
-      setWithdrawals([
-        {
-          id: 1,
-          user: 'john@example.com',
-          user_id: 101,
-          amount: 300,
-          method: 'Bank Transfer',
-          account_details: 'Account: ****1234',
-          reference: 'WTH-2024-001',
-          status: 'pending',
-          created_at: '2024-02-16T09:00:00Z'
-        },
-        {
-          id: 2,
-          user: 'jane@example.com',
-          user_id: 102,
-          amount: 750,
-          method: 'PayPal',
-          account_details: 'jane@paypal.com',
-          reference: 'WTH-2024-002',
-          status: 'pending',
-          created_at: '2024-02-16T10:30:00Z'
-        }
-      ]);
+      // TODO: Replace with actual API call
+      // const response = await adminAuthAPI.getWithdrawals();
+      // setWithdrawals(response.data);
+      setWithdrawals([]);
     } catch (error) {
       toast.error('Failed to load withdrawals');
     } finally {

@@ -3,7 +3,7 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Eye } from 'lucide-react';
 
 const coins = [
-  { symbol: 'EXACOIN', name: 'ExaCoin', price: 125.50, icon: 'https://cryptologos.cc/logos/stellar-xlm-logo.png', isHot: true, change: 45.2 },
+  { symbol: 'EXACOIN', name: 'ExaCoin', price: 60.00, icon: 'https://cryptologos.cc/logos/stellar-xlm-logo.png', isHot: true, change: 45.2 },
   { symbol: 'BTC', name: 'Bitcoin', price: 64444, icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' },
   { symbol: 'ETH', name: 'Ethereum', price: 3200, icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
   { symbol: 'BNB', name: 'Binance Coin', price: 420, icon: 'https://cryptologos.cc/logos/bnb-bnb-logo.png' },

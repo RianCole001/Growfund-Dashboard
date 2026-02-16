@@ -22,31 +22,8 @@ export default function AdminDeposits() {
       // const response = await adminAuthAPI.getDeposits();
       // setDeposits(response.data);
       
-      // Mock data for now
-      setDeposits([
-        {
-          id: 1,
-          user: 'john@example.com',
-          user_id: 101,
-          amount: 500,
-          method: 'Bank Transfer',
-          reference: 'DEP-2024-001',
-          status: 'pending',
-          created_at: '2024-02-16T10:30:00Z',
-          proof_url: null
-        },
-        {
-          id: 2,
-          user: 'jane@example.com',
-          user_id: 102,
-          amount: 1000,
-          method: 'Credit Card',
-          reference: 'DEP-2024-002',
-          status: 'pending',
-          created_at: '2024-02-16T11:15:00Z',
-          proof_url: null
-        }
-      ]);
+      // No mock data - will show empty state until backend is connected
+      setDeposits([]);
     } catch (error) {
       toast.error('Failed to load deposits');
       console.error(error);

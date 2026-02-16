@@ -112,7 +112,7 @@ export default function AdminApp() {
                   <input 
                     name="email"
                     type="email"
-                    defaultValue="admin001@gmail.com"
+                    placeholder="admin@growfund.com"
                     disabled={loading}
                     className="w-full bg-gray-600 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   />
@@ -122,7 +122,7 @@ export default function AdminApp() {
                   <input 
                     name="password"
                     type="password"
-                    defaultValue="Buffers316!"
+                    placeholder="Enter your password"
                     disabled={loading}
                     className="w-full bg-gray-600 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   />
@@ -136,13 +136,6 @@ export default function AdminApp() {
                 </button>
               </div>
             </form>
-            <div className="mt-4 text-xs text-gray-400 text-center space-y-2">
-              <div className="border-t border-gray-600 pt-3">
-                <p className="font-semibold text-gray-300 mb-2">Admin Credentials:</p>
-                <p>Admin 1: admin001@gmail.com / Buffers316!</p>
-                <p>Admin 2: admin@growfund.com / Admin123!</p>
-              </div>
-            </div>
           </div>
         </div>
       </motion.div>

@@ -1,40 +1,49 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { Link } from 'react-router-dom';
 
 export default function LandingPage() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  const autoLogin = async () => {
-    try {
-      await login({ email: 'demo@growfund.test', password: 'Demo1234!' });
-      navigate('/app');
-    } catch (e) {
-      // ignore — user may be missing (rare)
-      navigate('/login');
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-      <div className="max-w-2xl text-center p-6 bg-gray-800 rounded">
-        <h1 className="text-3xl font-bold text-blue-400 mb-2">Welcome to GrowFund</h1>
-        <p className="text-sm text-gray-300 mb-4">Build wealth with simple investing — crypto, real estate and more.</p>
-        <div className="space-x-3">
-          <Link to="/register" className="bg-blue-600 px-4 py-2 rounded">Get Started</Link>
-          <Link to="/login" className="bg-gray-600 px-4 py-2 rounded">Sign in</Link>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
+      <div className="max-w-4xl mx-auto text-center p-8">
+        <h1 className="text-5xl md:text-6xl font-bold text-blue-400 mb-4">
+          Welcome to GrowFund
+        </h1>
+        <p className="text-xl md:text-2xl text-gray-300 mb-8">
+          Build wealth with smart investing — crypto, capital plans, and real estate.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <Link 
+            to="/register" 
+            className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg text-lg font-semibold transition-colors"
+          >
+            Get Started
+          </Link>
+          <Link 
+            to="/login" 
+            className="bg-gray-700 hover:bg-gray-600 px-8 py-3 rounded-lg text-lg font-semibold transition-colors"
+          >
+            Sign In
+          </Link>
         </div>
 
-        <div className="mt-6 text-xs text-gray-400">This is a demo. Registration and login are simulated in-browser.</div>
-
-        <div className="mt-4 bg-gray-700 p-3 rounded text-left text-sm">
-          <div className="font-medium text-gray-200">Demo credentials</div>
-          <div className="text-xs text-gray-300">Email: <span className="font-mono">demo@growfund.test</span></div>
-          <div className="text-xs text-gray-300">Password: <span className="font-mono">Demo1234!</span></div>
-          <div className="mt-2">
-            <button onClick={autoLogin} className="bg-green-600 px-3 py-1 rounded">Auto login</button>
-            <Link to="/login" className="ml-2 text-sm text-gray-300">Or sign in manually</Link>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+          <div className="bg-gray-800/50 p-6 rounded-lg backdrop-blur">
+            <div className="text-4xl mb-3">💰</div>
+            <h3 className="text-xl font-semibold mb-2">Crypto Trading</h3>
+            <p className="text-gray-400 text-sm">Trade EXA coin and grow your digital assets</p>
+          </div>
+          
+          <div className="bg-gray-800/50 p-6 rounded-lg backdrop-blur">
+            <div className="text-4xl mb-3">📈</div>
+            <h3 className="text-xl font-semibold mb-2">Capital Plans</h3>
+            <p className="text-gray-400 text-sm">Invest in structured plans with guaranteed returns</p>
+          </div>
+          
+          <div className="bg-gray-800/50 p-6 rounded-lg backdrop-blur">
+            <div className="text-4xl mb-3">🏠</div>
+            <h3 className="text-xl font-semibold mb-2">Real Estate</h3>
+            <p className="text-gray-400 text-sm">Diversify with real estate investment opportunities</p>
           </div>
         </div>
       </div>
