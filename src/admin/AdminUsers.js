@@ -223,34 +223,115 @@ export default function AdminUsers() {
             <p className="text-gray-400">No users found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">User</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Balance</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Invested</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Joined</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center font-bold text-white">
-                          {user.name.charAt(0)}
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">User</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Balance</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Invested</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Joined</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-700 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center font-bold text-white">
+                            {user.name.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="font-medium text-white">{user.name}</div>
+                            <div className="text-sm text-gray-400">{user.email}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-white">{user.name}</div>
-                          <div className="text-sm text-gray-400">{user.email}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          {user.verified ? (
+                            <UserCheck className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <UserX className="w-4 h-4 text-yellow-400" />
+                          )}
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            user.status === 'active' ? 'bg-green-900/30 text-green-400' :
+                            user.status === 'pending' ? 'bg-yellow-900/30 text-yellow-400' :
+                            'bg-red-900/30 text-red-400'
+                          }`}>
+                            {user.status}
+                          </span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
+                      </td>
+                      <td className="px-6 py-4 text-white font-semibold">${(user.balance || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-green-400 font-semibold">${(user.invested || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-gray-400 text-sm">{user.joined || 'N/A'}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleViewUser(user)}
+                            className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" 
+                            title="View"
+                            disabled={actionLoading}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleVerifyUser(user)}
+                            className={`p-2 rounded-lg transition-colors ${user.verified ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}
+                            title={user.verified ? 'Unverify' : 'Verify'}
+                            disabled={actionLoading}
+                          >
+                            {user.verified ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          </button>
+                          <button 
+                            onClick={() => handleSuspendUser(user)}
+                            className="p-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors" 
+                            title="Suspend"
+                            disabled={actionLoading}
+                          >
+                            <Lock className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedUser(user); setModalAction('reset-password'); setShowModal(true); }}
+                            className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" 
+                            title="Reset Password"
+                            disabled={actionLoading}
+                          >
+                            <AlertCircle className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(user)}
+                            className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors" 
+                            title="Delete"
+                            disabled={actionLoading}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden divide-y divide-gray-700">
+              {filteredUsers.map((user) => (
+                <div key={user.id} className="p-4 hover:bg-gray-700/50 transition-colors">
+                  <div className="flex items-start space-x-3 mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center font-bold text-white">
+                      {user.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-white truncate">{user.name}</div>
+                      <div className="text-sm text-gray-400 truncate">{user.email}</div>
+                      <div className="flex items-center space-x-2 mt-1">
                         {user.verified ? (
                           <UserCheck className="w-4 h-4 text-green-400" />
                         ) : (
@@ -264,59 +345,54 @@ export default function AdminUsers() {
                           {user.status}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-white font-semibold">${(user.balance || 0).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-green-400 font-semibold">${(user.invested || 0).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-gray-400 text-sm">{user.joined || 'N/A'}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => handleViewUser(user)}
-                          className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" 
-                          title="View"
-                          disabled={actionLoading}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleVerifyUser(user)}
-                          className={`p-2 rounded-lg transition-colors ${user.verified ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}
-                          title={user.verified ? 'Unverify' : 'Verify'}
-                          disabled={actionLoading}
-                        >
-                          {user.verified ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                        </button>
-                        <button 
-                          onClick={() => handleSuspendUser(user)}
-                          className="p-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors" 
-                          title="Suspend"
-                          disabled={actionLoading}
-                        >
-                          <Lock className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => { setSelectedUser(user); setModalAction('reset-password'); setShowModal(true); }}
-                          className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" 
-                          title="Reset Password"
-                          disabled={actionLoading}
-                        >
-                          <AlertCircle className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteUser(user)}
-                          className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors" 
-                          title="Delete"
-                          disabled={actionLoading}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
+                    <div>
+                      <div className="text-gray-400">Balance</div>
+                      <div className="font-semibold text-white">${(user.balance || 0).toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Invested</div>
+                      <div className="font-semibold text-green-400">${(user.invested || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={() => handleViewUser(user)}
+                      className="flex-1 min-w-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm font-medium"
+                      disabled={actionLoading}
+                    >
+                      View
+                    </button>
+                    <button 
+                      onClick={() => handleVerifyUser(user)}
+                      className={`px-3 py-2 rounded-lg transition-colors text-sm font-medium ${user.verified ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}
+                      disabled={actionLoading}
+                    >
+                      {user.verified ? 'Unverify' : 'Verify'}
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedUser(user); setModalAction('reset-password'); setShowModal(true); }}
+                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm font-medium"
+                      disabled={actionLoading}
+                    >
+                      Reset
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteUser(user)}
+                      className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm font-medium"
+                      disabled={actionLoading}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

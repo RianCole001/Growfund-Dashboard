@@ -401,9 +401,9 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
       {/* Help Modal */}
       {showHelpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-3xl w-full shadow-xl border border-gray-700">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white flex items-center">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-700">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
                 <Info className="w-5 h-5 mr-2 text-blue-400" />
                 Investment Plans Guide
               </h3>
@@ -416,15 +416,15 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               {plans.map((plan) => {
                 const PlanIcon = plan.icon;
                 return (
-                  <div key={plan.key} className="bg-gray-700 p-5 rounded-lg border border-gray-600">
-                    <div className="flex items-start space-x-4">
+                  <div key={plan.key} className="bg-gray-700 p-4 sm:p-5 rounded-lg border border-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
                       <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${plan.color} flex items-center justify-center flex-shrink-0`}>
                         <PlanIcon className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
                           <h4 className="font-semibold text-lg text-white">{plan.name}</h4>
-                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded font-medium">{plan.badge}</span>
+                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded font-medium mt-2 sm:mt-0 self-start">{plan.badge}</span>
                         </div>
                         <p className="text-sm text-gray-400 mb-3">{plan.desc}</p>
                         <div className="flex flex-wrap gap-2">

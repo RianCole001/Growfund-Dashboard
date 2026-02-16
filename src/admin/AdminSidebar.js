@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, LayoutDashboard, Users, TrendingUp, ArrowDownRight, ArrowUpRight, List, Settings } from 'lucide-react';
+import { X, LayoutDashboard, Users, TrendingUp, ArrowDownRight, ArrowUpRight, List, Settings, Bell } from 'lucide-react';
 
 export default function AdminSidebar({ page, setPage, onClose }) {
   const menuItems = [
@@ -9,6 +9,7 @@ export default function AdminSidebar({ page, setPage, onClose }) {
     { name: 'Deposits', icon: ArrowDownRight },
     { name: 'Withdrawals', icon: ArrowUpRight },
     { name: 'Transactions', icon: List },
+    { name: 'Notifications', icon: Bell },
     { name: 'Settings', icon: Settings },
   ];
 

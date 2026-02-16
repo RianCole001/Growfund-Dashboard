@@ -13,6 +13,7 @@ import AdminTransactions from './admin/AdminTransactions';
 import AdminDeposits from './admin/AdminDeposits';
 import AdminWithdrawals from './admin/AdminWithdrawals';
 import AdminSettings from './admin/AdminSettings';
+import AdminNotifications from './admin/AdminNotifications';
 import AdminSidebar from './admin/AdminSidebar';
 
 export default function AdminApp() {
@@ -157,7 +158,7 @@ export default function AdminApp() {
                 GrowFund Admin
               </span>
               <nav className="hidden lg:flex space-x-1 flex-1 overflow-x-auto">
-                {['Dashboard', 'Users', 'Investments', 'Deposits', 'Withdrawals', 'Transactions', 'Settings'].map((item) => (
+                {['Dashboard', 'Users', 'Investments', 'Deposits', 'Withdrawals', 'Transactions', 'Notifications', 'Settings'].map((item) => (
                   <button 
                     key={item} 
                     onClick={() => setPageAndPersist(item)} 
@@ -205,6 +206,7 @@ export default function AdminApp() {
         {page === 'Deposits' && <AdminDeposits />}
         {page === 'Withdrawals' && <AdminWithdrawals />}
         {page === 'Transactions' && <AdminTransactions />}
+        {page === 'Notifications' && <AdminNotifications />}
         {page === 'Settings' && <AdminSettings />}
 
         {/* Mobile Sidebar */}
