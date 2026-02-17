@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { UserAuthProvider } from './auth/UserAuthContext';
 import { AdminAuthProvider } from './auth/AdminAuthContext';
+import { DemoProvider } from './demo/DemoContext';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import LandingPage from './pages/LandingPage';
 import RegisterPage from './pages/RegisterPage';
@@ -20,30 +21,32 @@ import AdminApp from './AdminApp';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <UserAuthProvider>
-        <AdminAuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/verify" element={<VerifyEmailPage />} />
-              <Route path="/forgot" element={<ForgotPasswordPage />} />
-              <Route path="/reset" element={<ResetPasswordPage />} />
-              <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route path="/app/*" element={<AppNew />} />
-              <Route path="/admin" element={
-                <ProtectedAdminRoute>
-                  <AdminApp />
-                </ProtectedAdminRoute>
-              } />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
-        </AdminAuthProvider>
-      </UserAuthProvider>
-    </AuthProvider>
+    <DemoProvider>
+      <AuthProvider>
+        <UserAuthProvider>
+          <AdminAuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/verify" element={<VerifyEmailPage />} />
+                <Route path="/forgot" element={<ForgotPasswordPage />} />
+                <Route path="/reset" element={<ResetPasswordPage />} />
+                <Route path="/onboarding" element={<OnboardingPage />} />
+                <Route path="/app/*" element={<AppNew />} />
+                <Route path="/admin" element={
+                  <ProtectedAdminRoute>
+                    <AdminApp />
+                  </ProtectedAdminRoute>
+                } />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </AdminAuthProvider>
+        </UserAuthProvider>
+      </AuthProvider>
+    </DemoProvider>
   </React.StrictMode>
 );
 

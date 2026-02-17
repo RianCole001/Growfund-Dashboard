@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, ToggleLeft, ToggleRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useDemo } from '../demo/DemoContext';
 
 export default function Profile({ profile = {}, onSave, auth = { loggedIn: false }, onLogout, openEdit = false, onOpenHandled, onClose }) {
+  const { isDemoMode, enableDemoMode, disableDemoMode } = useDemo();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile?.name || '');
   const [email, setEmail] = useState(profile?.email || '');
@@ -160,6 +162,57 @@ export default function Profile({ profile = {}, onSave, auth = { loggedIn: false
             </button>
           )}
         </div>
+      </div>
+
+      {/* Demo Mode Toggle Section */}
+      <div className="mb-6 p-4 bg-gray-700 rounded-lg border border-gray-600">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-green-400 mb-1">Account Mode</h3>
+            <p className="text-sm text-gray-300">
+              {isDemoMode 
+                ? "Demo mode: Practice with virtual balance ($15,750)" 
+                : "Live mode: Real account with actual balance"
+              }
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              if (isDemoMode) {
+                disableDemoMode();
+                toast.success('Switched to Live Account');
+              } else {
+                enableDemoMode();
+                toast.success('Switched to Demo Account - $15,750 virtual balance added!');
+              }
+            }}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+              isDemoMode
+                ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
+          >
+            {isDemoMode ? (
+              <>
+                <ToggleRight className="w-5 h-5" />
+                <span>Switch to Live</span>
+              </>
+            ) : (
+              <>
+                <ToggleLeft className="w-5 h-5" />
+                <span>Try Demo</span>
+              </>
+            )}
+          </button>
+        </div>
+        {isDemoMode && (
+          <div className="mt-3 p-3 bg-orange-900/30 border border-orange-600/30 rounded-lg">
+            <p className="text-sm text-orange-200">
+              🎭 <strong>Demo Mode Active:</strong> You're using virtual money to practice. 
+              All investments and transactions are simulated. Switch to Live mode when ready for real trading.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

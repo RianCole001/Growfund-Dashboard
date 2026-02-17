@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { userAuthAPI } from '../services/api';
+import { demoAwareAPI } from '../services/demoAwareAPI';
 import { useUserAuth } from '../auth/UserAuthContext';
 
 export default function LoginPage() {
@@ -21,7 +21,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await userAuthAPI.login(email, password);
+      const response = await demoAwareAPI.login(email, password);
       
       // Store tokens with user prefix
       localStorage.setItem('user_access_token', response.data.tokens.access);
@@ -29,8 +29,8 @@ export default function LoginPage() {
       
       // Update auth context
       loginUser(response.data.tokens.access, response.data.user);
-      
       toast.success('Login successful!');
+      
       navigate(from, { replace: true });
     } catch (err) {
       const errorMsg = err.response?.data?.error || err.message || 'Failed to login';
@@ -43,25 +43,43 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-      <div className="max-w-md w-full bg-gray-800 p-6 rounded">
-        <h2 className="text-xl font-semibold text-blue-400 mb-4">Sign in to GrowFund</h2>
+      <div className="max-w-md w-full bg-gray-800 p-6 rounded-xl shadow-2xl">
+        <h2 className="text-xl font-semibold text-green-500 mb-4">Sign in to GrowFund</h2>
         {error && <div className="text-red-400 text-sm mb-2">{error}</div>}
+        
         <form onSubmit={submit} className="space-y-3">
           <div>
             <label className="text-sm text-gray-300">Email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full bg-gray-700 p-2 rounded" />
+            <input 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              className="mt-1 w-full bg-gray-700 p-2 rounded focus:ring-2 focus:ring-green-500 focus:outline-none" 
+              placeholder="Enter your email"
+            />
           </div>
           <div>
             <label className="text-sm text-gray-300">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full bg-gray-700 p-2 rounded" />
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              className="mt-1 w-full bg-gray-700 p-2 rounded focus:ring-2 focus:ring-green-500 focus:outline-none" 
+              placeholder="Enter your password"
+            />
           </div>
           <div className="flex items-center justify-between">
-            <button type="submit" disabled={loading} className="bg-blue-600 px-4 py-2 rounded disabled:opacity-50">
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded disabled:opacity-50 transition-colors font-semibold"
+            >
               {loading ? 'Logging in...' : 'Login'}
             </button>
-            <Link to="/forgot" className="text-sm text-gray-300">Forgot password?</Link>
+            <Link to="/forgot" className="text-sm text-gray-300 hover:text-green-400 transition-colors">Forgot password?</Link>
           </div>
-          <div className="text-sm text-gray-400 mt-2">Don't have an account? <Link to="/register" className="text-blue-400">Register</Link></div>
+          <div className="text-sm text-gray-400 mt-2">
+            Don't have an account? <Link to="/register" className="text-green-400 hover:text-green-300 transition-colors">Register</Link>
+          </div>
         </form>
       </div>
     </div>

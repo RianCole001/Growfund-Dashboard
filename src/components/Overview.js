@@ -7,12 +7,12 @@ export default function Overview({ balance, investments, prices, transactions = 
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = (profileToUse = null) => {
-    const dataToCheck = profileToUse || profile;
+    const dataToCheck = profileToUse || profile || {};
     setProfileData(dataToCheck);
     
     const profileFields = ['name', 'email', 'phone', 'location', 'occupation', 'company', 'website', 'bio', 'avatar'];
     const profileFilled = profileFields.reduce((s, k) => {
-      const value = dataToCheck[k];
+      const value = dataToCheck && dataToCheck[k];
       // Count as filled if it's not empty, not null, not undefined, and not just whitespace
       return s + (value && value.toString().trim() ? 1 : 0);
     }, 0);
@@ -28,7 +28,9 @@ export default function Overview({ balance, investments, prices, transactions = 
   // Listen for custom profile update event
   useEffect(() => {
     const handleProfileUpdate = (event) => {
-      calculateProfileCompletion(event.detail);
+      if (event && event.detail) {
+        calculateProfileCompletion(event.detail);
+      }
     };
     
     window.addEventListener('profileUpdated', handleProfileUpdate);

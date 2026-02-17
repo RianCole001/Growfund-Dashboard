@@ -4,7 +4,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { userAuthAPI } from './services/api';
+import { demoAwareAPI } from './services/demoAwareAPI';
 import { useUserAuth } from './auth/UserAuthContext';
+import { useDemo } from './demo/DemoContext';
 
 import Profile from './components/Profile';
 import CryptoInvestment from './components/CryptoInvestment';
@@ -25,6 +27,7 @@ import Settings from './components/Settings';
 import Notifications from './components/Notifications';
 import Portfolio from './components/Portfolio';
 
+
 const cryptoWatchlist = [
   { symbol: 'EXACOIN', name: 'ExaCoin' },
   { symbol: 'BTC', name: 'Bitcoin' },
@@ -38,11 +41,14 @@ const cryptoWatchlist = [
 export default function App() {
   const navigate = useNavigate();
   const { logoutUser } = useUserAuth();
+  const { isDemoMode, demoBalance, demoInvestments, demoTransactions, demoBuyCrypto, demoSellCrypto, demoDeposit, demoWithdraw, demoInvest } = useDemo();
   
-  // Auth state - check if user has valid token
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('access_token'));
+  // Auth state - check if user has valid token (real or demo)
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem('user_access_token') || !!localStorage.getItem('demo_access_token')
+  );
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState({});
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
   const [watchlistData, setWatchlistData] = useState([]);
@@ -68,6 +74,15 @@ export default function App() {
     let isMounted = true;
 
     const fetchUserData = async () => {
+      // Check for demo mode first
+      if (isDemoMode) {
+        if (isMounted) {
+          // Keep real user data, only use demo balance
+          setBalance(demoBalance);
+        }
+        return;
+      }
+
       const token = localStorage.getItem('user_access_token');
       if (!token) {
         if (isMounted) {
@@ -83,9 +98,9 @@ export default function App() {
       try {
         setLoading(true);
         const [userRes, profileRes, balanceRes] = await Promise.all([
-          userAuthAPI.getCurrentUser(),
-          userAuthAPI.getProfile(),
-          userAuthAPI.getBalance(),
+          demoAwareAPI.getCurrentUser(),
+          demoAwareAPI.getProfile(),
+          demoAwareAPI.getBalance(),
         ]);
 
         if (!isMounted) return;
@@ -119,9 +134,11 @@ export default function App() {
       } catch (error) {
         console.error('Error fetching user data:', error);
         // Token might be invalid
-        localStorage.removeItem('user_access_token');
-        localStorage.removeItem('user_refresh_token');
-        localStorage.removeItem('user_data');
+        if (!isDemoMode) {
+          localStorage.removeItem('user_access_token');
+          localStorage.removeItem('user_refresh_token');
+          localStorage.removeItem('user_data');
+        }
         if (isMounted) {
           setIsAuthenticated(false);
           setUser(null);
@@ -141,7 +158,7 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [navigate]);
+  }, [navigate, isDemoMode, demoBalance]);
 
   // Fetch watchlist data
   useEffect(() => {
@@ -149,24 +166,43 @@ export default function App() {
 
     const fetchWatchlist = async () => {
       try {
-        const coingecko = require('./utils/coingecko').default;
-        const symbols = cryptoWatchlist.map(c => c.symbol);
-        const marketData = await coingecko.fetchMarketData(symbols);
-        
-        if (!isMounted) return;
+        if (isDemoMode) {
+          // Use demo prices
+          if (!isMounted) return;
+          
+          const watchlist = cryptoWatchlist.map(coin => {
+            const data = prices[coin.symbol] || {};
+            return {
+              symbol: coin.symbol,
+              name: coin.name,
+              price: data.price || 0,
+              change24h: data.change24h || 0,
+              change7d: data.change7d || 0,
+            };
+          });
 
-        const watchlist = cryptoWatchlist.map(coin => {
-          const data = marketData[coin.symbol] || {};
-          return {
-            symbol: coin.symbol,
-            name: coin.name,
-            price: data.price || 0,
-            change24h: data.change24h || 0,
-            change7d: data.change7d || 0,
-          };
-        });
+          setWatchlistData(watchlist);
+        } else {
+          // Use real coingecko data
+          const coingecko = require('./utils/coingecko').default;
+          const symbols = cryptoWatchlist.map(c => c.symbol);
+          const marketData = await coingecko.fetchMarketData(symbols);
+          
+          if (!isMounted) return;
 
-        setWatchlistData(watchlist);
+          const watchlist = cryptoWatchlist.map(coin => {
+            const data = marketData[coin.symbol] || {};
+            return {
+              symbol: coin.symbol,
+              name: coin.name,
+              price: data.price || 0,
+              change24h: data.change24h || 0,
+              change7d: data.change7d || 0,
+            };
+          });
+
+          setWatchlistData(watchlist);
+        }
       } catch (error) {
         console.error('Error fetching watchlist:', error);
       }
@@ -180,7 +216,7 @@ export default function App() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [isDemoMode, prices]);
 
   const addToast = (msg, type = 'success') => {
     if (type === 'success') {
@@ -257,7 +293,7 @@ export default function App() {
       }
       
       // Call API with FormData (don't set Content-Type header, let browser set it)
-      const response = await userAuthAPI.updateProfile(dataToSend);
+      const response = await demoAwareAPI.updateProfile(dataToSend);
       
       // Update profile state with response data
       const updatedData = response.data.data || response.data;
@@ -287,6 +323,87 @@ export default function App() {
     } catch (error) {
       console.error('Error updating profile:', error);
       addToast('Failed to update profile', 'error');
+    }
+  };
+
+  // Demo trading functions
+  const handleBuyCrypto = async (cryptoData) => {
+    try {
+      if (isDemoMode) {
+        await demoBuyCrypto(cryptoData);
+        addToast(`Demo: Bought ${cryptoData.quantity?.toFixed(4)} ${cryptoData.coin} for $${cryptoData.amount?.toFixed(2)}`);
+      } else {
+        // Real crypto purchase logic would go here
+        await demoAwareAPI.buyCrypto(cryptoData);
+        addToast(`Bought ${cryptoData.quantity?.toFixed(4)} ${cryptoData.coin} for $${cryptoData.amount?.toFixed(2)}`);
+      }
+    } catch (error) {
+      console.error('Error buying crypto:', error);
+      addToast(error.message || 'Failed to buy crypto', 'error');
+    }
+  };
+
+  const handleSellCrypto = async (sellData) => {
+    try {
+      if (isDemoMode) {
+        await demoSellCrypto(sellData);
+        addToast(`Demo: Sold ${sellData.quantity?.toFixed(4)} ${sellData.coin} for $${sellData.amount?.toFixed(2)}`);
+      } else {
+        // Real crypto sale logic would go here
+        await demoAwareAPI.sellCrypto(sellData);
+        addToast(`Sold ${sellData.quantity?.toFixed(4)} ${sellData.coin} for $${sellData.amount?.toFixed(2)}`);
+      }
+    } catch (error) {
+      console.error('Error selling crypto:', error);
+      addToast(error.message || 'Failed to sell crypto', 'error');
+    }
+  };
+
+  const handleDeposit = async (amount) => {
+    try {
+      if (isDemoMode) {
+        await demoDeposit(amount);
+        addToast(`Demo: Deposited $${parseFloat(amount).toFixed(2)}`);
+      } else {
+        // Real deposit logic would go here
+        await demoAwareAPI.deposit(amount);
+        addToast(`Deposited $${parseFloat(amount).toFixed(2)}`);
+      }
+    } catch (error) {
+      console.error('Error making deposit:', error);
+      addToast(error.message || 'Failed to make deposit', 'error');
+    }
+  };
+
+  const handleWithdraw = async (amount) => {
+    try {
+      if (isDemoMode) {
+        await demoWithdraw(amount);
+        addToast(`Demo: Withdrew $${parseFloat(amount).toFixed(2)}`);
+      } else {
+        // Real withdrawal logic would go here
+        await demoAwareAPI.withdraw(amount);
+        addToast(`Withdrew $${parseFloat(amount).toFixed(2)}`);
+      }
+    } catch (error) {
+      console.error('Error making withdrawal:', error);
+      addToast(error.message || 'Failed to make withdrawal', 'error');
+    }
+  };
+
+  const handleInvest = async (investmentData) => {
+    try {
+      if (isDemoMode) {
+        await demoInvest(investmentData);
+        addToast(`Demo: Invested $${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
+      } else {
+        // Real investment logic would go here
+        await demoAwareAPI.createInvestment(investmentData);
+        addToast(`Invested $${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
+      }
+    } catch (error) {
+      console.error('Error making investment:', error);
+      addToast(error.message || 'Failed to make investment', 'error');
     }
   };
 
@@ -339,7 +456,8 @@ export default function App() {
                 {/* Balance Display */}
                 <div className="hidden sm:flex items-center bg-gray-700 px-3 py-2 rounded-lg">
                   <span className="text-xs text-gray-400 mr-2">Balance:</span>
-                  <span className="text-sm font-bold text-green-400">${balance.toLocaleString()}</span>
+                  <span className="text-sm font-bold text-green-400">${(isDemoMode ? demoBalance : balance).toLocaleString()}</span>
+                  {isDemoMode && <span className="ml-2 text-xs text-orange-400">(Demo)</span>}
                 </div>
 
                 {/* Price Update Status */}
@@ -389,7 +507,10 @@ export default function App() {
             {/* Mobile Balance Bar */}
             <div className="sm:hidden mt-2 flex items-center justify-between bg-gray-700 px-3 py-2 rounded-lg">
               <span className="text-xs text-gray-400">Balance:</span>
-              <span className="text-sm font-bold text-green-400">${balance.toLocaleString()}</span>
+              <div className="flex items-center">
+                <span className="text-sm font-bold text-green-400">${(isDemoMode ? demoBalance : balance).toLocaleString()}</span>
+                {isDemoMode && <span className="ml-2 text-xs text-orange-400">(Demo)</span>}
+              </div>
             </div>
           </div>
         </header>
@@ -398,21 +519,30 @@ export default function App() {
         <main className="flex-grow p-4 lg:p-6 overflow-hidden flex flex-col lg:flex-row">
           <div className="flex-grow mr-0 lg:mr-4">
             {page === 'Dashboard' && (
-              <Overview balance={balance} investments={investments} prices={prices} transactions={transactions} loading={loadingPrices} onNavigate={(p) => setPage(p)} userName={profile?.name || user?.email || 'User'} profile={profile} />
+              <Overview 
+                balance={isDemoMode ? demoBalance : balance} 
+                investments={isDemoMode ? demoInvestments : investments} 
+                prices={prices} 
+                transactions={isDemoMode ? demoTransactions : transactions} 
+                loading={loadingPrices} 
+                onNavigate={(p) => setPage(p)} 
+                userName={profile?.name || user?.email || 'User'} 
+                profile={profile} 
+              />
             )}
 
             {page === 'Crypto' && <CryptoInvestment onSelectCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} prices={prices} loading={loadingPrices} onViewCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} />}
 
             {page === 'Portfolio' && (
               <Portfolio 
-                investments={investments} 
-                balance={balance} 
+                investments={isDemoMode ? demoInvestments : investments} 
+                balance={isDemoMode ? demoBalance : balance} 
                 prices={prices} 
                 loading={loadingPrices} 
               />
             )}
 
-            {page === 'Trade Now' && <TradeNow balance={balance} onTrade={() => {}} prices={prices} />}
+            {page === 'Trade Now' && <TradeNow balance={isDemoMode ? demoBalance : balance} onTrade={() => {}} prices={prices} />}
 
             {page === 'Earn' && <Earn userEmail={profile?.email} onNotify={addToast} />}
 
@@ -435,9 +565,9 @@ export default function App() {
               <CoinModal 
                 coin={selectedCoin} 
                 onClose={() => setCoinModalOpen(false)} 
-                balance={balance} 
-                onBuy={() => setCoinModalOpen(false)} 
-                onSell={() => setCoinModalOpen(false)} 
+                balance={isDemoMode ? demoBalance : balance} 
+                onBuy={handleBuyCrypto} 
+                onSell={handleSellCrypto} 
               />
             )}
 
@@ -462,24 +592,24 @@ export default function App() {
 
             {page === 'Capital Appreciation Plan' && (
               <div className="space-y-4">
-                <CapitalPlan investments={investments} balance={balance} onInvest={() => {}} onNotify={addToast} />
+                <CapitalPlan investments={isDemoMode ? demoInvestments : investments} balance={isDemoMode ? demoBalance : balance} onInvest={handleInvest} onNotify={addToast} />
                 <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-white">
-                  <h3 className="text-lg font-semibold text-blue-400 mb-3">Your Investments</h3>
-                  {investments.length === 0 && <div className="text-sm text-gray-300">No investments yet.</div>}
+                  <h3 className="text-lg font-semibold text-green-500 mb-3">Your Investments</h3>
+                  {(isDemoMode ? demoInvestments : investments).length === 0 && <div className="text-sm text-gray-300">No investments yet.</div>}
                 </div>
-                <SimpleChart investments={investments} />
+                <SimpleChart investments={isDemoMode ? demoInvestments : investments} />
               </div>
             )}
 
-            {page === 'Real Estate' && <RealEstate onInvest={() => {}} />}
+            {page === 'Real Estate' && <RealEstate onInvest={handleInvest} />}
 
-            {page === 'Balances' && <Balances balance={balance} investments={investments} />}
+            {page === 'Balances' && <Balances balance={isDemoMode ? demoBalance : balance} investments={isDemoMode ? demoInvestments : investments} />}
 
-            {page === 'Deposits' && <Deposits onDeposit={() => {}} />}
+            {page === 'Deposits' && <Deposits onDeposit={handleDeposit} />}
 
-            {page === 'Withdrawals' && <Withdrawals balance={balance} onWithdraw={() => {}} />}
+            {page === 'Withdrawals' && <Withdrawals balance={isDemoMode ? demoBalance : balance} onWithdraw={handleWithdraw} />}
 
-            {page === 'Transactions' && <TransactionHistory transactions={transactions} />}
+            {page === 'Transactions' && <TransactionHistory transactions={isDemoMode ? demoTransactions : transactions} />}
           </div>
 
           {/* Sidebar */}

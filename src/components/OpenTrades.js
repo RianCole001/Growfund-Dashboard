@@ -103,7 +103,8 @@ export default function OpenTrades({ onRefresh }) {
 
       <div className="space-y-3">
         {trades.map((trade) => {
-          const isPositive = trade.profit_loss >= 0;
+          const profitLoss = parseFloat(trade.profit_loss || 0);
+          const isPositive = profitLoss >= 0;
           const isExpired = trade.status === 'expired';
           const isClosed = trade.status !== 'open';
 
@@ -139,10 +140,10 @@ export default function OpenTrades({ onRefresh }) {
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Entry / Current</div>
                   <div className="font-semibold text-white">
-                    ${trade.entry_price.toFixed(2)} / ${trade.current_price?.toFixed(2) || trade.entry_price.toFixed(2)}
+                    ${parseFloat(trade.entry_price || 0).toFixed(2)} / ${parseFloat(trade.current_price || trade.entry_price || 0).toFixed(2)}
                   </div>
                   <div className="text-xs text-gray-400 mt-1">
-                    Qty: {parseFloat(trade.quantity).toFixed(4)}
+                    Qty: {parseFloat(trade.quantity || 0).toFixed(4)}
                   </div>
                 </div>
 
@@ -150,10 +151,10 @@ export default function OpenTrades({ onRefresh }) {
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Profit/Loss</div>
                   <div className={`font-bold text-lg ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                    ${trade.profit_loss.toFixed(2)}
+                    ${profitLoss.toFixed(2)}
                   </div>
                   <div className={`text-xs font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                    {isPositive ? '+' : ''}{trade.profit_loss_percentage.toFixed(2)}%
+                    {isPositive ? '+' : ''}{parseFloat(trade.profit_loss_percentage || 0).toFixed(2)}%
                   </div>
                 </div>
 
@@ -162,13 +163,13 @@ export default function OpenTrades({ onRefresh }) {
                   {trade.stop_loss && (
                     <div className="flex items-center text-xs">
                       <Shield className="w-3 h-3 mr-1 text-red-400" />
-                      <span className="text-gray-400">SL: ${trade.stop_loss.toFixed(2)}</span>
+                      <span className="text-gray-400">SL: ${parseFloat(trade.stop_loss).toFixed(2)}</span>
                     </div>
                   )}
                   {trade.take_profit && (
                     <div className="flex items-center text-xs">
                       <Target className="w-3 h-3 mr-1 text-green-400" />
-                      <span className="text-gray-400">TP: ${trade.take_profit.toFixed(2)}</span>
+                      <span className="text-gray-400">TP: ${parseFloat(trade.take_profit).toFixed(2)}</span>
                     </div>
                   )}
                   {trade.timeframe && (

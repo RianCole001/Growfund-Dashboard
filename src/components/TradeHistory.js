@@ -87,7 +87,8 @@ export default function TradeHistory() {
           </thead>
           <tbody>
             {filteredHistory.map((trade) => {
-              const isProfit = trade.profit_loss >= 0;
+              const profitLoss = parseFloat(trade.profit_loss || 0);
+              const isProfit = profitLoss >= 0;
               const closeReasonLabel = {
                 'manual': '👤 Manual',
                 'stop_loss': '🛑 Stop Loss',
@@ -125,23 +126,23 @@ export default function TradeHistory() {
                     </div>
                   </td>
                   <td className="py-3 px-4 text-right text-gray-300">
-                    ${trade.entry_price.toFixed(2)}
+                    ${parseFloat(trade.entry_price || 0).toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-right text-gray-300">
-                    ${trade.exit_price.toFixed(2)}
+                    ${parseFloat(trade.exit_price || 0).toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-right text-gray-300">
-                    {parseFloat(trade.quantity).toFixed(4)}
+                    {parseFloat(trade.quantity || 0).toFixed(4)}
                   </td>
                   <td className={`py-3 px-4 text-right font-bold ${
                     isProfit ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {isProfit ? '+' : ''}${trade.profit_loss.toFixed(2)}
+                    {isProfit ? '+' : ''}${profitLoss.toFixed(2)}
                   </td>
                   <td className={`py-3 px-4 text-right font-bold ${
                     isProfit ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {isProfit ? '+' : ''}{trade.profit_loss_percentage.toFixed(2)}%
+                    {isProfit ? '+' : ''}{parseFloat(trade.profit_loss_percentage || 0).toFixed(2)}%
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-400">
                     {closeReasonLabel}
