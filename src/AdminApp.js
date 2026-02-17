@@ -8,6 +8,7 @@ import { useAdminAuth } from './auth/AdminAuthContext';
 
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
+import AdminPriceControl from './admin/AdminPriceControl';
 import AdminInvestments from './admin/AdminInvestments';
 import AdminTransactions from './admin/AdminTransactions';
 import AdminDeposits from './admin/AdminDeposits';
@@ -158,7 +159,7 @@ export default function AdminApp() {
                 GrowFund Admin
               </span>
               <nav className="hidden lg:flex space-x-1 flex-1 overflow-x-auto">
-                {['Dashboard', 'Users', 'Investments', 'Deposits', 'Withdrawals', 'Transactions', 'Notifications', 'Settings'].map((item) => (
+                {['Dashboard', 'Users', 'Price Control', 'Investments', 'Deposits', 'Withdrawals', 'Transactions', 'Notifications', 'Settings'].map((item) => (
                   <button 
                     key={item} 
                     onClick={() => setPageAndPersist(item)} 
@@ -202,6 +203,7 @@ export default function AdminApp() {
       <main className="flex-grow p-4 lg:p-6">
         {page === 'Dashboard' && <AdminDashboard />}
         {page === 'Users' && <AdminUsers />}
+        {page === 'Price Control' && <AdminPriceControl />}
         {page === 'Investments' && <AdminInvestments />}
         {page === 'Deposits' && <AdminDeposits />}
         {page === 'Withdrawals' && <AdminWithdrawals />}

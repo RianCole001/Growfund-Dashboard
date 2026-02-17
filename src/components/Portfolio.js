@@ -1,9 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, Target, Award, Eye, Wallet, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Target, Award, Eye, Wallet, BarChart3, Minus } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useDemo } from '../demo/DemoContext';
 
-export default function Portfolio({ investments = [], balance = 0, prices = {}, loading = false }) {
+export default function Portfolio({ investments = [], balance = 0, prices = {}, loading = false, onSellCrypto }) {
+  const { isDemoMode, demoSellCrypto } = useDemo();
   const [viewMode, setViewMode] = useState('overview'); // 'overview', 'crypto', 'plans'
+  const [sellModalOpen, setSellModalOpen] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState(null);
+  const [sellAmount, setSellAmount] = useState('');
+  const [sellLoading, setSellLoading] = useState(false);
 
   // Calculate portfolio data
   const portfolioData = useMemo(() => {
@@ -65,6 +72,81 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       }
     };
   }, [investments, balance, prices]);
+
+  // Get admin-controlled sell price
+  const getSellPrice = (coin) => {
+    const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
+    if (adminPrices[coin] && adminPrices[coin].sellPrice) {
+      return adminPrices[coin].sellPrice;
+    }
+    // Fallback to 97% of current price if admin hasn't set sell price
+    return (prices[coin]?.price || 0) * 0.97;
+  };
+
+  const openSellModal = (holding) => {
+    setSelectedHolding(holding);
+    setSellAmount('');
+    setSellModalOpen(true);
+  };
+
+  const closeSellModal = () => {
+    setSellModalOpen(false);
+    setSelectedHolding(null);
+    setSellAmount('');
+    setSellLoading(false);
+  };
+
+  const handleSellCrypto = async () => {
+    if (!selectedHolding || !sellAmount) {
+      toast.error('Please enter a valid amount to sell');
+      return;
+    }
+
+    const sellQuantity = parseFloat(sellAmount);
+    if (isNaN(sellQuantity) || sellQuantity <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (sellQuantity > selectedHolding.quantity) {
+      toast.error('Cannot sell more than you own');
+      return;
+    }
+
+    try {
+      setSellLoading(true);
+      const sellPrice = getSellPrice(selectedHolding.coin);
+      const sellValue = sellQuantity * sellPrice;
+
+      if (isDemoMode) {
+        // Use demo sell function
+        await demoSellCrypto({
+          investmentId: selectedHolding.transactions[0]?.id, // Use first transaction ID
+          coin: selectedHolding.coin,
+          amount: sellQuantity,
+          price: sellPrice
+        });
+        toast.success(`Successfully sold ${sellQuantity} ${selectedHolding.coin} for $${sellValue.toFixed(2)}`);
+      } else {
+        // Use real API
+        if (onSellCrypto) {
+          await onSellCrypto({
+            coin: selectedHolding.coin,
+            amount: sellQuantity,
+            price: sellPrice
+          });
+          toast.success(`Successfully sold ${sellQuantity} ${selectedHolding.coin} for $${sellValue.toFixed(2)}`);
+        }
+      }
+
+      closeSellModal();
+    } catch (error) {
+      console.error('Error selling crypto:', error);
+      toast.error(error.message || 'Failed to sell cryptocurrency');
+    } finally {
+      setSellLoading(false);
+    }
+  };
 
   // Pie chart data for allocation
   const allocationData = [
@@ -333,7 +415,8 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Asset</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Holdings</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Current Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Buy Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Sell Price</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Current Value</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Invested</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">P&L</th>
@@ -354,6 +437,11 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-white">${holding.currentPrice.toLocaleString()}</div>
+                        <div className="text-xs text-gray-400">Market price</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-white">${getSellPrice(holding.coin).toFixed(2)}</div>
+                        <div className="text-xs text-gray-400">Sell price</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-bold text-white">${holding.currentValue.toLocaleString()}</div>
@@ -370,10 +458,19 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <button className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs flex items-center shadow-lg">
-                          <Eye className="w-3 h-3 mr-1" />
-                          Details
-                        </button>
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => openSellModal(holding)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs flex items-center shadow-lg transition-colors"
+                          >
+                            <Minus className="w-3 h-3 mr-1" />
+                            Sell
+                          </button>
+                          <button className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs flex items-center shadow-lg">
+                            <Eye className="w-3 h-3 mr-1" />
+                            Details
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -471,6 +568,123 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
               <p className="text-sm text-gray-500">Start with Capital Plans or Real Estate to see your investments here</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sell Crypto Modal */}
+      {sellModalOpen && selectedHolding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            onClick={closeSellModal} 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+          />
+          
+          <div className="relative bg-gray-800 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white">Sell {selectedHolding.coin}</h3>
+                <button 
+                  onClick={closeSellModal}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Holdings Info */}
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-400">Available:</span>
+                      <div className="font-semibold text-white">{selectedHolding.quantity.toFixed(6)} {selectedHolding.coin}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Sell Price:</span>
+                      <div className="font-semibold text-white">${getSellPrice(selectedHolding.coin).toFixed(2)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sell Amount Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Amount to Sell
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.000001"
+                      max={selectedHolding.quantity}
+                      value={sellAmount}
+                      onChange={(e) => setSellAmount(e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      placeholder="0.000000"
+                    />
+                    <div className="absolute right-3 top-2 text-gray-400 text-sm">
+                      {selectedHolding.coin}
+                    </div>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <button
+                      onClick={() => setSellAmount((selectedHolding.quantity * 0.25).toFixed(6))}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      25%
+                    </button>
+                    <button
+                      onClick={() => setSellAmount((selectedHolding.quantity * 0.5).toFixed(6))}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      50%
+                    </button>
+                    <button
+                      onClick={() => setSellAmount((selectedHolding.quantity * 0.75).toFixed(6))}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      75%
+                    </button>
+                    <button
+                      onClick={() => setSellAmount(selectedHolding.quantity.toFixed(6))}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Max
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sell Value Preview */}
+                {sellAmount && !isNaN(parseFloat(sellAmount)) && (
+                  <div className="bg-red-900/20 p-4 rounded-lg border border-red-600/30">
+                    <div className="flex justify-between items-center">
+                      <span className="text-red-300">You will receive:</span>
+                      <span className="text-xl font-bold text-white">
+                        ${(parseFloat(sellAmount) * getSellPrice(selectedHolding.coin)).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={closeSellModal}
+                    disabled={sellLoading}
+                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSellCrypto}
+                    disabled={sellLoading || !sellAmount || parseFloat(sellAmount) <= 0}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sellLoading ? 'Selling...' : 'Confirm Sale'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -538,7 +538,8 @@ export default function App() {
                 investments={isDemoMode ? demoInvestments : investments} 
                 balance={isDemoMode ? demoBalance : balance} 
                 prices={prices} 
-                loading={loadingPrices} 
+                loading={loadingPrices}
+                onSellCrypto={handleSellCrypto}
               />
             )}
 

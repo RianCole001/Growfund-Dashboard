@@ -1,10 +1,11 @@
 import React from 'react';
-import { X, LayoutDashboard, Users, TrendingUp, ArrowDownRight, ArrowUpRight, List, Settings, Bell } from 'lucide-react';
+import { X, LayoutDashboard, Users, TrendingUp, ArrowDownRight, ArrowUpRight, List, Settings, Bell, DollarSign } from 'lucide-react';
 
 export default function AdminSidebar({ page, setPage, onClose }) {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Users', icon: Users },
+    { name: 'Price Control', icon: DollarSign },
     { name: 'Investments', icon: TrendingUp },
     { name: 'Deposits', icon: ArrowDownRight },
     { name: 'Withdrawals', icon: ArrowUpRight },
