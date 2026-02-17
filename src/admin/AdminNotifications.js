@@ -39,6 +39,13 @@ export default function AdminNotifications() {
         },
       });
 
+      // Check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(`Server error (${response.status}): ${response.statusText}`);
+      }
+
       const result = await response.json();
       
       if (result.success) {
@@ -48,7 +55,11 @@ export default function AdminNotifications() {
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
+      if (error.message.includes('500')) {
+        toast.error('Backend server error. The notification system may not be set up yet.');
+      } else {
+        toast.error('Failed to load notifications: ' + error.message);
+      }
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -90,6 +101,13 @@ export default function AdminNotifications() {
         body: JSON.stringify(requestBody),
       });
 
+      // Check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(`Server error (${response.status}): ${response.statusText}`);
+      }
+
       const result = await response.json();
       
       if (result.success) {
@@ -109,7 +127,11 @@ export default function AdminNotifications() {
       }
     } catch (error) {
       console.error('Error creating notification:', error);
-      toast.error('Failed to send notification');
+      if (error.message.includes('500')) {
+        toast.error('Backend server error. Please check if the notification system is properly configured.');
+      } else {
+        toast.error('Failed to send notification: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -134,6 +156,13 @@ export default function AdminNotifications() {
         },
       });
 
+      // Check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(`Server error (${response.status}): ${response.statusText}`);
+      }
+
       const result = await response.json();
       
       if (result.success) {
@@ -144,7 +173,11 @@ export default function AdminNotifications() {
       }
     } catch (error) {
       console.error('Error deleting notification:', error);
-      toast.error('Failed to delete notification');
+      if (error.message.includes('500')) {
+        toast.error('Backend server error. Could not delete notification.');
+      } else {
+        toast.error('Failed to delete notification: ' + error.message);
+      }
     }
   };
 
