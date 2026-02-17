@@ -23,6 +23,7 @@ import TradeNow from './components/TradeNow';
 import Earn from './components/Earn';
 import Settings from './components/Settings';
 import Notifications from './components/Notifications';
+import Portfolio from './components/Portfolio';
 
 const cryptoWatchlist = [
   { symbol: 'EXACOIN', name: 'ExaCoin' },
@@ -312,18 +313,18 @@ export default function App() {
             <div className="flex items-center justify-between">
               {/* Logo and Desktop Nav */}
               <div className="flex items-center space-x-4 flex-1">
-                <span className="text-2xl font-bold text-blue-400 flex items-center whitespace-nowrap">
+                <span className="text-2xl font-bold text-green-500 flex items-center whitespace-nowrap">
                   <TrendingUp className="w-6 h-6 mr-2" />
                   GrowFund
                 </span>
                 <nav className="hidden lg:flex space-x-1 flex-1 overflow-x-auto">
-                  {['Dashboard', 'Profile', 'Crypto', 'Trade Now', 'Earn', 'Capital Plan', 'Real Estate', 'Balances', 'Deposits', 'Withdrawals', 'Transactions'].map((item) => (
+                  {['Dashboard', 'Portfolio', 'Profile', 'Crypto', 'Trade Now', 'Earn', 'Capital Plan', 'Real Estate', 'Balances', 'Deposits', 'Withdrawals', 'Transactions'].map((item) => (
                     <button 
                       key={item} 
                       onClick={() => setPage(item === 'Capital Plan' ? 'Capital Appreciation Plan' : item)} 
                       className={`px-2 py-2 rounded-lg text-xs transition-all duration-200 whitespace-nowrap ${
                         page === item || (item === 'Capital Plan' && page === 'Capital Appreciation Plan')
-                          ? 'bg-blue-600 text-white font-semibold shadow-md' 
+                          ? 'bg-green-500 text-white font-semibold shadow-lg' 
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                     >
@@ -378,7 +379,7 @@ export default function App() {
                 {/* Mobile Menu Button */}
                 <button 
                   onClick={() => setSidebarOpen(true)} 
-                  className="lg:hidden bg-blue-600 rounded-lg p-2 hover:bg-blue-700 transition-colors duration-200 shadow-md"
+                  className="lg:hidden bg-green-500 rounded-lg p-2 hover:bg-green-600 transition-colors duration-200 shadow-lg"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
@@ -401,6 +402,15 @@ export default function App() {
             )}
 
             {page === 'Crypto' && <CryptoInvestment onSelectCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} prices={prices} loading={loadingPrices} onViewCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} />}
+
+            {page === 'Portfolio' && (
+              <Portfolio 
+                investments={investments} 
+                balance={balance} 
+                prices={prices} 
+                loading={loadingPrices} 
+              />
+            )}
 
             {page === 'Trade Now' && <TradeNow balance={balance} onTrade={() => {}} prices={prices} />}
 

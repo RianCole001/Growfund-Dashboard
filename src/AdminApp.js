@@ -93,8 +93,8 @@ export default function AdminApp() {
         <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-2xl p-8">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
-              <TrendingUp className="w-12 h-12 text-blue-400 mr-3" />
-              <h1 className="text-4xl font-bold text-blue-400">GrowFund</h1>
+              <TrendingUp className="w-12 h-12 text-green-500 mr-3" />
+              <h1 className="text-4xl font-bold text-green-500">GrowFund</h1>
             </div>
             <p className="text-gray-400">Admin Portal</p>
           </div>
@@ -131,7 +131,7 @@ export default function AdminApp() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 >
                   {loading ? 'Signing in...' : 'Sign In'}
                 </button>
@@ -153,7 +153,7 @@ export default function AdminApp() {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1">
-              <span className="text-2xl font-bold text-blue-400 flex items-center whitespace-nowrap">
+              <span className="text-2xl font-bold text-green-500 flex items-center whitespace-nowrap">
                 <TrendingUp className="w-6 h-6 mr-2" />
                 GrowFund Admin
               </span>
@@ -164,7 +164,7 @@ export default function AdminApp() {
                     onClick={() => setPageAndPersist(item)} 
                     className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 whitespace-nowrap ${
                       page === item
-                        ? 'bg-blue-600 text-white font-semibold shadow-md' 
+                        ? 'bg-green-500 text-white font-semibold shadow-lg' 
                         : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                     }`}
                   >
@@ -190,7 +190,7 @@ export default function AdminApp() {
 
               <button 
                 onClick={() => setSidebarOpen(true)} 
-                className="lg:hidden bg-blue-600 rounded-lg p-2 hover:bg-blue-700 transition-colors"
+                className="lg:hidden bg-green-500 rounded-lg p-2 hover:bg-green-600 transition-colors shadow-lg"
               >
                 <Menu className="w-5 h-5" />
               </button>

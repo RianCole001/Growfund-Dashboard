@@ -10,7 +10,7 @@ const plans = [
     min: 1000, 
     rate: 20,
     icon: Home,
-    color: 'from-blue-400 via-cyan-500 to-blue-600',
+    color: 'from-green-500 via-emerald-500 to-green-600',
     badge: '🏠 Starter'
   },
   { 
@@ -272,7 +272,7 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
 
             <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
               <div className="flex items-start space-x-3">
-                <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                <Info className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-gray-300">
                   <strong className="text-white">Monthly Compounding:</strong> Returns are calculated and reinvested each month for exponential growth.
                 </div>

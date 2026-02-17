@@ -138,129 +138,161 @@ export default function Overview({ balance, investments, prices, transactions = 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Welcome Back, {userName}!</h1>
+        <h1 className="text-3xl font-bold text-green-500">Welcome Back, {userName}!</h1>
         <p className="text-sm text-gray-400">Here's an overview of your portfolio journey</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <div className="text-sm text-gray-300">Investments</div>
-          <div className="text-2xl font-bold">{investments.length || 0}</div>
-          <div className="text-xs text-gray-400 mt-2">${Math.round(totalInvested).toLocaleString()} invested • {investments.length} positions</div>
+        <div className="bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 p-4 rounded-lg shadow-lg text-white">
+          <div className="text-sm text-emerald-100 font-medium flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Investments
+          </div>
+          <div className="text-3xl font-bold text-white">{investments.length || 0}</div>
+          <div className="text-xs text-emerald-100 mt-2">${Math.round(totalInvested).toLocaleString()} invested • {investments.length} positions</div>
         </div>
 
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <div className="text-sm text-gray-300">Balance</div>
-          <div className="text-2xl font-bold">${Math.round(balance).toLocaleString()}</div>
-          <div className="text-xs text-gray-400 mt-2">Available • Updated</div>
+        <div className="bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 p-4 rounded-lg shadow-lg text-white">
+          <div className="text-sm text-blue-100 font-medium flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"/>
+            </svg>
+            Balance
+          </div>
+          <div className="text-3xl font-bold text-white">${Math.round(balance).toLocaleString()}</div>
+          <div className="text-xs text-blue-100 mt-2">Available • Updated</div>
         </div>
 
-        <div role="button" tabIndex={0} onClick={() => (typeof onNavigate === 'function' ? onNavigate('Profile', { openEdit: true }) : null)} className="bg-gray-800 p-4 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-700 transition-colors">
+        <div role="button" tabIndex={0} onClick={() => (typeof onNavigate === 'function' ? onNavigate('Profile', { openEdit: true }) : null)} className="bg-gradient-to-br from-orange-400 via-pink-500 to-red-600 p-4 rounded-lg shadow-lg text-white flex items-center justify-between cursor-pointer hover:from-orange-500 hover:via-pink-600 hover:to-red-700 transition-all transform hover:scale-105">
           <div className="flex items-center">
-            <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden mr-3">
+            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm overflow-hidden mr-3 border-2 border-white/30">
               {profileData && profileData.avatar ? (
                 <img src={profileData.avatar} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold">{(profileData && profileData.name) ? profileData.name.split(' ').map(n => n[0]).slice(0,2).join('') : 'JD'}</div>
+                <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">{(profileData && profileData.name) ? profileData.name.split(' ').map(n => n[0]).slice(0,2).join('') : 'JD'}</div>
               )}
             </div>
             <div>
-              <div className="text-sm text-gray-300">Profile</div>
-              <div className="text-2xl font-bold">{profilePct}%</div>
+              <div className="text-sm text-orange-100 font-medium flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
+                </svg>
+                Profile
+              </div>
+              <div className="text-3xl font-bold text-white">{profilePct}%</div>
             </div>
           </div>
           <div>
-            <button onClick={(e) => { e.stopPropagation(); if (typeof onNavigate === 'function') onNavigate('Profile', { openEdit: true }); }} className="bg-gray-700 px-3 py-1 rounded text-sm">Edit</button>
+            <button onClick={(e) => { e.stopPropagation(); if (typeof onNavigate === 'function') onNavigate('Profile', { openEdit: true }); }} className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm font-medium transition-all border border-white/30">Edit</button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-md font-semibold mb-3 text-blue-400">Recent Investments</h3>
+        <div className="lg:col-span-2 bg-gradient-to-br from-slate-800 via-gray-900 to-slate-900 border border-gray-700 p-6 rounded-xl shadow-xl">
+          <h3 className="text-lg font-bold mb-4 text-green-400 flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Recent Investments
+          </h3>
           {transactions.length === 0 ? (
-            <div className="text-sm text-gray-300">No recent investments.</div>
+            <div className="text-sm text-gray-400">No recent investments.</div>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {transactions.slice(0, 6).map((t, i) => (
-                <li key={i} className="flex justify-between items-center bg-gray-700 p-3 rounded">
+                <li key={i} className="flex justify-between items-center bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 p-4 rounded-lg border border-gray-600 transition-all transform hover:scale-[1.02]">
                   <div>
-                    <div className="font-medium">{t.asset || t.coin || t.type}</div>
+                    <div className="font-semibold text-white">{t.asset || t.coin || t.type}</div>
                     <div className="text-xs text-gray-400">{new Date(t.date).toLocaleDateString()}</div>
                   </div>
-                  <div className={`text-sm ${t.type === 'Withdraw' ? 'text-yellow-300' : t.type === 'Deposit' ? 'text-green-300' : 'text-white'}`}>${(t.amount || 0).toLocaleString()}</div>
+                  <div className={`text-sm font-bold ${t.type === 'Withdraw' ? 'text-amber-400' : t.type === 'Deposit' ? 'text-green-400' : 'text-blue-400'}`}>${(t.amount || 0).toLocaleString()}</div>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-md font-semibold mb-3 text-blue-400">Balance Details</h3>
+        <div className="bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-800 p-6 rounded-xl shadow-xl text-white">
+          <h3 className="text-lg font-bold mb-4 flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"/>
+            </svg>
+            Balance Details
+          </h3>
           {balanceTransactions.length === 0 ? (
-            <div className="text-sm text-gray-300">No recent balance activity</div>
+            <div className="text-sm text-indigo-100">No recent balance activity</div>
           ) : (
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-3 text-sm">
               {balanceTransactions.map((t, i) => (
-                <li key={i} className="flex justify-between items-center bg-gray-700 p-2 rounded">
+                <li key={i} className="flex justify-between items-center bg-white/10 backdrop-blur-sm hover:bg-white/20 p-3 rounded-lg border border-white/20 transition-all">
                   <div>
-                    <div className="font-medium">{t.type}</div>
-                    <div className="text-xs text-gray-400">{new Date(t.date).toLocaleDateString()}</div>
+                    <div className="font-semibold text-white">{t.type}</div>
+                    <div className="text-xs text-indigo-200">{new Date(t.date).toLocaleDateString()}</div>
                   </div>
-                  <div className={`font-medium ${t.type === 'Withdraw' ? 'text-yellow-300' : 'text-green-300'}`}>${(t.amount || 0).toLocaleString()}</div>
+                  <div className={`font-bold ${t.type === 'Withdraw' ? 'text-amber-300' : 'text-green-300'}`}>${(t.amount || 0).toLocaleString()}</div>
                 </li>
               ))}
             </ul>
           )}
 
-          <div className="mt-3">
-            <button onClick={() => (typeof onNavigate === 'function' ? onNavigate('Deposits') : null)} className="w-full bg-green-600 px-3 py-2 rounded">Deposit</button>
+          <div className="mt-4">
+            <button onClick={() => (typeof onNavigate === 'function' ? onNavigate('Deposits') : null)} className="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 px-4 py-3 rounded-lg font-bold transition-all transform hover:scale-105 shadow-lg text-white">
+              💰 Deposit Funds
+            </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-md font-semibold mb-3 text-blue-400">Portfolio Growth</h3>
+        <div className="lg:col-span-2 bg-gradient-to-br from-teal-600 via-cyan-700 to-blue-800 p-6 rounded-xl shadow-xl text-white">
+          <h3 className="text-lg font-bold mb-4 flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Portfolio Growth
+          </h3>
           {areaData.length === 0 ? (
-            <div className="text-sm text-gray-300">No investment history yet.</div>
+            <div className="text-sm text-cyan-100">No investment history yet.</div>
           ) : (
-            <div className="h-64">
+            <div className="h-64 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={areaData}>
-                  <XAxis dataKey="date" stroke="#6B7280" />
-                  <YAxis stroke="#6B7280" />
-                  <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none' }} />
-                  <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2} dot={{ r: 2 }} />
+                  <XAxis dataKey="date" stroke="#ffffff" />
+                  <YAxis stroke="#ffffff" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #0891b2', borderRadius: '8px', color: '#ffffff' }} />
+                  <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          <div className="mt-4">
-            <h4 className="text-sm text-gray-300 mb-2">Holdings</h4>
+          <div className="mt-6">
+            <h4 className="text-sm font-bold mb-3 text-cyan-100">Holdings Overview</h4>
             {holdings.length === 0 ? (
-              <div className="text-sm text-gray-300">No holdings yet.</div>
+              <div className="text-sm text-cyan-200">No holdings yet.</div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-gray-400">
+                  <thead className="text-left bg-white/20">
                     <tr>
-                      <th className="p-2">Asset</th>
-                      <th className="p-2">Qty</th>
-                      <th className="p-2">Current Value</th>
-                      <th className="p-2">Invested</th>
-                      <th className="p-2">ROI</th>
+                      <th className="p-3 font-bold text-cyan-100">Asset</th>
+                      <th className="p-3 font-bold text-cyan-100">Qty</th>
+                      <th className="p-3 font-bold text-cyan-100">Value</th>
+                      <th className="p-3 font-bold text-cyan-100">Invested</th>
+                      <th className="p-3 font-bold text-cyan-100">ROI</th>
                     </tr>
                   </thead>
                   <tbody>
                     {holdings.map((h, i) => (
-                      <tr key={i} className="odd:bg-gray-700 even:bg-gray-600">
-                        <td className="p-2">{h.name} {h.coin ? <span className="text-xs text-gray-400">({h.coin})</span> : null}</td>
-                        <td className="p-2">{h.quantity ? h.quantity.toFixed(4) : '-'}</td>
-                        <td className="p-2">${Math.round(h.currentValue).toLocaleString()}</td>
-                        <td className="p-2">${Math.round(h.invested).toLocaleString()}</td>
-                        <td className={`p-2 ${h.roi >= 0 ? 'text-green-400' : 'text-red-400'}`}>{h.roi ? `${h.roi.toFixed(2)}%` : '-'}</td>
+                      <tr key={i} className="border-b border-white/10 hover:bg-white/10 transition-colors">
+                        <td className="p-3 text-white font-medium">{h.name} {h.coin ? <span className="text-xs text-cyan-200">({h.coin})</span> : null}</td>
+                        <td className="p-3 text-cyan-100">{h.quantity ? h.quantity.toFixed(4) : '-'}</td>
+                        <td className="p-3 text-white font-bold">${Math.round(h.currentValue).toLocaleString()}</td>
+                        <td className="p-3 text-cyan-200">${Math.round(h.invested).toLocaleString()}</td>
+                        <td className={`p-3 font-bold ${h.roi >= 0 ? 'text-green-300' : 'text-red-300'}`}>{h.roi ? `${h.roi.toFixed(2)}%` : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -270,26 +302,33 @@ export default function Overview({ balance, investments, prices, transactions = 
           </div>
         </div>
 
-        <div className="bg-gray-800 p-4 rounded-lg h-full">
-          <h3 className="text-md font-semibold mb-3 text-blue-400">Top Movers ({timeframe})</h3>
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-gradient-to-br from-amber-500 via-orange-600 to-red-700 p-6 rounded-xl shadow-xl text-white">
+          <h3 className="text-lg font-bold mb-4 flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+            </svg>
+            Top Movers ({timeframe})
+          </h3>
+          <div className="flex items-center justify-between mb-4">
             <div className="space-x-2">
-              <button className={`px-2 py-1 rounded ${timeframe === '24h' ? 'bg-blue-600' : 'bg-gray-700'}`} onClick={() => setTimeframe('24h')}>24h</button>
-              <button className={`px-2 py-1 rounded ${timeframe === '7d' ? 'bg-blue-600' : 'bg-gray-700'}`} onClick={() => setTimeframe('7d')}>7d</button>
-              <button className={`px-2 py-1 rounded ${timeframe === '30d' ? 'bg-blue-600' : 'bg-gray-700'}`} onClick={() => setTimeframe('30d')}>30d</button>
+              <button className={`px-3 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 ${timeframe === '24h' ? 'bg-white text-orange-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`} onClick={() => setTimeframe('24h')}>24h</button>
+              <button className={`px-3 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 ${timeframe === '7d' ? 'bg-white text-orange-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`} onClick={() => setTimeframe('7d')}>7d</button>
+              <button className={`px-3 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 ${timeframe === '30d' ? 'bg-white text-orange-600 shadow-lg' : 'bg-white/20 text-white hover:bg-white/30'}`} onClick={() => setTimeframe('30d')}>30d</button>
             </div>
           </div>
           {topGainers.length === 0 ? (
-            <div className="text-sm text-gray-300">No market data available.</div>
+            <div className="text-sm text-orange-100">No market data available.</div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {topGainers.map((m, i) => (
-                <div key={i} className="flex justify-between items-center bg-gray-700 p-2 rounded">
+                <div key={i} className="flex justify-between items-center bg-white/10 backdrop-blur-sm hover:bg-white/20 p-3 rounded-lg border border-white/20 transition-all transform hover:scale-[1.02]">
                   <div>
-                    <div className="font-medium">{m.symbol}</div>
-                    <div className="text-xs text-gray-400">${(m.price || 0).toLocaleString()}</div>
+                    <div className="font-bold text-white">{m.symbol}</div>
+                    <div className="text-xs text-orange-200">${(m.price || 0).toLocaleString()}</div>
                   </div>
-                  <div className={`font-medium ${m[periodKey] >= 0 ? 'text-green-400' : 'text-red-400'}`}>{m[periodKey] ? `${m[periodKey].toFixed(2)}%` : '—'}</div>
+                  <div className={`font-bold text-lg ${m[periodKey] >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                    {m[periodKey] >= 0 ? '📈' : '📉'} {m[periodKey] ? `${m[periodKey].toFixed(2)}%` : '—'}
+                  </div>
                 </div>
               ))}
             </div>

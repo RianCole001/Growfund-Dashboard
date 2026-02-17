@@ -36,7 +36,7 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
     <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg text-white">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
         <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-blue-400">Crypto Market</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-green-500">Crypto Market</h2>
           <p className="text-xs sm:text-sm text-gray-400 mt-1">Live cryptocurrency prices</p>
         </div>
         <div className="flex items-center text-xs text-green-400">
@@ -95,7 +95,7 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                   <div className="flex space-x-2">
                     <button 
                       onClick={() => onSelectCoin(c)} 
-                      className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+                      className="bg-green-500 px-4 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold text-sm shadow-lg"
                     >
                       Invest
                     </button>
@@ -157,7 +157,7 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
               <div className="flex space-x-2">
                 <button 
                   onClick={() => onSelectCoin(c)} 
-                  className="flex-1 bg-blue-600 px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+                  className="flex-1 bg-green-500 px-3 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold text-sm shadow-lg"
                 >
                   Invest
                 </button>

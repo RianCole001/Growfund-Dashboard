@@ -128,17 +128,17 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 sm:p-8 shadow-lg">
+      <div className="bg-gradient-to-r from-green-400 via-green-500 to-emerald-500 rounded-xl p-6 sm:p-8 shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center mb-2">
               <TrendingUp className="w-6 h-6 mr-2" />
               Capital Investment Plan
             </h2>
-            <p className="text-blue-100 text-sm">Grow your wealth with monthly compound returns</p>
+            <p className="text-green-100 text-sm">Grow your wealth with monthly compound returns</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm px-5 py-3 rounded-lg border border-white/20">
-            <div className="text-xs text-blue-100 mb-1">Available Balance</div>
+            <div className="text-xs text-green-100 mb-1">Available Balance</div>
             <div className="text-xl sm:text-2xl font-bold text-white">${Math.round(balance).toLocaleString()}</div>
           </div>
         </div>
@@ -146,23 +146,23 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
 
       {/* Onboarding */}
       {showOnboard && (
-        <div className="bg-blue-600 p-4 rounded-lg shadow-lg">
+        <div className="bg-green-500 p-4 rounded-lg shadow-lg">
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <div className="flex items-center mb-2">
-                <Info className="w-5 h-5 mr-2 text-blue-100" />
+                <Info className="w-5 h-5 mr-2 text-green-100" />
                 <div className="font-semibold text-white">Getting Started</div>
               </div>
-              <div className="text-sm text-blue-50 mb-3">
+              <div className="text-sm text-green-50 mb-3">
                 Choose your investment plan, set your duration in months, and watch your money grow with monthly compound returns.
               </div>
-              <button onClick={openHelp} className="text-sm font-medium text-blue-100 hover:text-white underline">
+              <button onClick={openHelp} className="text-sm font-medium text-green-100 hover:text-white underline">
                 Learn more about plans →
               </button>
             </div>
             <button 
               onClick={dismissOnboard} 
-              className="ml-4 bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              className="ml-4 bg-white text-green-600 px-4 py-2 rounded-lg font-semibold hover:bg-green-50 transition-colors"
             >
               Got it
             </button>
@@ -185,13 +185,13 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               onMouseLeave={() => setHoveredPlan(null)}
               className={`relative bg-gray-800 rounded-lg p-5 cursor-pointer transition-all ${
                 isSelected 
-                  ? 'ring-2 ring-blue-500 shadow-lg' 
+                  ? 'ring-2 ring-green-500 shadow-lg' 
                   : 'hover:shadow-md hover:bg-gray-750'
               }`}
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-0 ${isSelected ? 'opacity-5' : ''} rounded-lg transition-opacity`}></div>
               
-              <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+              <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
                 {p.badge}
               </div>
 
@@ -202,7 +202,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 
                 <div className="mb-3">
                   <h3 className="text-lg font-bold text-white mb-1">{p.name}</h3>
-                  <div className="text-3xl font-bold text-blue-400">
+                  <div className="text-3xl font-bold text-green-500">
                     {p.key === 'advance' ? '40-60%' : p.rate}%
                   </div>
                   <div className="text-xs text-gray-400 mt-1">Monthly Return</div>
@@ -213,7 +213,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 <div className="space-y-2 mb-4">
                   {p.features.map((feature, idx) => (
                     <div key={idx} className="flex items-center text-xs text-gray-300">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></div>
                       {feature}
                     </div>
                   ))}
@@ -225,7 +225,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                     onClick={(e) => { e.stopPropagation(); openConfirm(amount, p); }}
                     className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                       isSelected 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg' 
                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                     }`}
                   >
@@ -243,7 +243,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <h3 className="text-xl font-semibold text-white flex items-center mb-2">
-              <Icon className="w-5 h-5 mr-2 text-blue-400" />
+              <Icon className="w-5 h-5 mr-2 text-green-500" />
               Growth Projection
             </h3>
             <p className="text-sm text-gray-400">Monthly compound growth with {selectedPlan.name} Plan</p>
@@ -261,8 +261,8 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 <AreaChart data={data}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.6}/>
-                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.6}/>
+                      <stop offset="95%" stopColor="#059669" stopOpacity={0.1}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -271,7 +271,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: '#1F2937', 
-                      border: '2px solid #3B82F6', 
+                      border: '2px solid #10B981', 
                       borderRadius: '12px',
                       boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
                     }}
@@ -280,7 +280,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                   <Area 
                     type="monotone" 
                     dataKey="value" 
-                    stroke="#3B82F6" 
+                    stroke="#10B981" 
                     strokeWidth={4}
                     fill="url(#colorValue)" 
                   />
@@ -324,7 +324,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                   <button
                     key={percent}
                     onClick={() => setAmount(Math.round(balance * percent / 100))}
-                    className="bg-gray-600 hover:bg-blue-600 py-2 rounded-lg text-xs font-bold transition-all transform hover:scale-105"
+                    className="bg-gray-600 hover:bg-green-500 py-2 rounded-lg text-xs font-bold transition-all transform hover:scale-105"
                   >
                     {percent}%
                   </button>
@@ -390,7 +390,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
 
             <button 
               onClick={() => openConfirm(amount, selectedPlan)} 
-              className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-4 rounded-lg font-semibold text-lg transition-colors"
+              className="w-full bg-green-500 hover:bg-green-600 px-6 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg"
             >
               Invest ${Math.round(amount).toLocaleString()}
             </button>
@@ -404,7 +404,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
           <div className="bg-gray-800 rounded-xl p-4 sm:p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-700">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                <Info className="w-5 h-5 mr-2 text-blue-400" />
+                <Info className="w-5 h-5 mr-2 text-green-500" />
                 Investment Plans Guide
               </h3>
               <button onClick={closeHelp} className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
@@ -424,7 +424,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                       <div className="flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
                           <h4 className="font-semibold text-lg text-white">{plan.name}</h4>
-                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded font-medium mt-2 sm:mt-0 self-start">{plan.badge}</span>
+                          <span className="text-xs bg-green-500 text-white px-2 py-1 rounded font-medium mt-2 sm:mt-0 self-start">{plan.badge}</span>
                         </div>
                         <p className="text-sm text-gray-400 mb-3">{plan.desc}</p>
                         <div className="flex flex-wrap gap-2">
@@ -442,7 +442,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               })}
             </div>
 
-            <div className="mt-6 bg-blue-600/10 border border-blue-600/30 p-4 rounded-lg">
+            <div className="mt-6 bg-green-500/10 border border-green-500/30 p-4 rounded-lg">
               <p className="text-sm text-gray-300">
                 <strong className="text-white">Tip:</strong> Start with the Basic plan and scale up as you gain confidence. All returns are calculated with monthly compounding.
               </p>
@@ -456,7 +456,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-700">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Confirm Investment</h3>

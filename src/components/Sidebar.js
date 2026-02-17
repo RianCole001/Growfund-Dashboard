@@ -1,9 +1,10 @@
 import React from 'react';
-import { X, Home, User, Bitcoin, TrendingUp, Building, Wallet, ArrowDownCircle, ArrowUpCircle, List, BarChart3, Gift, Settings } from 'lucide-react';
+import { X, Home, User, Bitcoin, TrendingUp, Building, Wallet, ArrowDownCircle, ArrowUpCircle, List, BarChart3, Gift, Settings, PieChart } from 'lucide-react';
 
 export default function Sidebar({ page, setPage, onClose }) {
   const items = [
     { name: 'Dashboard', icon: Home },
+    { name: 'Portfolio', icon: PieChart },
     { name: 'Profile', icon: User },
     { name: 'Crypto', icon: Bitcoin },
     { name: 'Trade Now', icon: BarChart3 },
@@ -22,8 +23,8 @@ export default function Sidebar({ page, setPage, onClose }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
         <div className="flex items-center">
-          <TrendingUp className="w-6 h-6 text-blue-400 mr-2" />
-          <div className="text-2xl font-bold text-blue-400">GrowFund</div>
+          <TrendingUp className="w-6 h-6 text-green-500 mr-2" />
+          <div className="text-2xl font-bold text-green-500">GrowFund</div>
         </div>
         <button 
           onClick={onClose} 
@@ -47,7 +48,7 @@ export default function Sidebar({ page, setPage, onClose }) {
               }} 
               className={`flex items-center space-x-3 text-left p-3 rounded-lg transition-all duration-200 ${
                 page === item.name 
-                  ? 'bg-blue-600 font-semibold shadow-md' 
+                  ? 'bg-green-500 font-semibold shadow-lg' 
                   : 'hover:bg-gray-700'
               }`}
             >
