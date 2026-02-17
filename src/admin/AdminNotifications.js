@@ -23,7 +23,13 @@ export default function AdminNotifications() {
     try {
       setLoading(true);
       
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('admin_access_token') || localStorage.getItem('user_access_token');
+      
+      if (!token) {
+        toast.error('Please login as admin to access notifications');
+        setLoading(false);
+        return;
+      }
       
       const response = await fetch('https://growfun-backend.onrender.com/api/notifications/admin/notifications/', {
         method: 'GET',
@@ -58,7 +64,13 @@ export default function AdminNotifications() {
     try {
       setLoading(true);
       
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('admin_access_token') || localStorage.getItem('user_access_token');
+      
+      if (!token) {
+        toast.error('Please login as admin to send notifications');
+        setLoading(false);
+        return;
+      }
       
       const requestBody = {
         title: newNotification.title,
@@ -107,7 +119,12 @@ export default function AdminNotifications() {
     if (!window.confirm('Are you sure you want to delete this notification?')) return;
 
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('admin_access_token') || localStorage.getItem('user_access_token');
+      
+      if (!token) {
+        toast.error('Please login as admin to delete notifications');
+        return;
+      }
       
       const response = await fetch(`https://growfun-backend.onrender.com/api/notifications/admin/notifications/${id}/`, {
         method: 'DELETE',
