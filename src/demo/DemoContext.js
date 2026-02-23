@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { demoData } from './demoData';
+import { demoAPI } from '../services/demoAPI';
 
 const DemoContext = createContext();
 
@@ -16,27 +16,68 @@ export const DemoProvider = ({ children }) => {
   const [demoBalance, setDemoBalance] = useState(0);
   const [demoInvestments, setDemoInvestments] = useState([]);
   const [demoTransactions, setDemoTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Initialize demo data when demo mode is enabled
+  // Check if demo mode is enabled on app start
   useEffect(() => {
-    if (isDemoMode) {
-      initializeDemoData();
+    const demoMode = localStorage.getItem('demo_mode') || localStorage.getItem('demo_access_token');
+    if (demoMode === 'true' || demoMode === 'demo_user_token') {
+      setIsDemoMode(true);
+      loadDemoData();
     }
-  }, [isDemoMode]);
+  }, []);
 
-  const initializeDemoData = () => {
-    setDemoBalance(demoData.balance);
-    setDemoInvestments([]);
-    setDemoTransactions([]);
+  // Load demo data from backend
+  const loadDemoData = async () => {
+    try {
+      setLoading(true);
+      const [balanceRes, investmentsRes, transactionsRes] = await Promise.all([
+        demoAPI.getDemoBalance(),
+        demoAPI.getDemoInvestments(),
+        demoAPI.getDemoTransactions()
+      ]);
+
+      if (balanceRes.data.success) {
+        setDemoBalance(parseFloat(balanceRes.data.data.balance));
+      }
+
+      if (investmentsRes.data.success) {
+        setDemoInvestments(investmentsRes.data.data);
+      }
+
+      if (transactionsRes.data.success) {
+        setDemoTransactions(transactionsRes.data.data);
+      }
+    } catch (error) {
+      console.error('Error loading demo data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const enableDemoMode = () => {
-    setIsDemoMode(true);
-    setDemoBalance(demoData.balance);
-    setDemoInvestments([]);
-    setDemoTransactions([]);
-    // Store demo mode in localStorage
-    localStorage.setItem('demo_mode', 'true');
+  const enableDemoMode = async () => {
+    try {
+      setLoading(true);
+      setIsDemoMode(true);
+      
+      // Store demo mode in localStorage using the same token system as AppNew.js
+      localStorage.setItem('demo_access_token', 'demo_user_token');
+      localStorage.setItem('demo_mode', 'true');
+      
+      // Get or create demo account
+      await demoAPI.getDemoAccount();
+      
+      // Load demo data
+      await loadDemoData();
+    } catch (error) {
+      console.error('Error enabling demo mode:', error);
+      // Fallback to default values
+      setDemoBalance(10000);
+      setDemoInvestments([]);
+      setDemoTransactions([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const disableDemoMode = () => {
@@ -44,179 +85,97 @@ export const DemoProvider = ({ children }) => {
     setDemoBalance(0);
     setDemoInvestments([]);
     setDemoTransactions([]);
+    
     // Clear demo data from localStorage
+    localStorage.removeItem('demo_access_token');
     localStorage.removeItem('demo_mode');
   };
 
-  // Check if demo mode is enabled on app start
-  useEffect(() => {
-    const demoMode = localStorage.getItem('demo_mode');
-    if (demoMode === 'true') {
-      setIsDemoMode(true);
-      setDemoBalance(demoData.balance);
-      setDemoInvestments([]);
-      setDemoTransactions([]);
-    }
-  }, []);
-
-  // Demo balance management functions
+  // Demo transaction functions using backend API
   const demoDeposit = async (amount) => {
-    const depositAmount = parseFloat(amount);
-    const newBalance = demoBalance + depositAmount;
-    setDemoBalance(newBalance);
-    
-    const transaction = {
-      id: Date.now(),
-      type: 'Deposit',
-      amount: depositAmount,
-      date: new Date().toISOString(),
-      status: 'Completed'
-    };
-    
-    setDemoTransactions(prev => [transaction, ...prev]);
-    return { success: true, newBalance, transaction };
+    try {
+      const response = await demoAPI.demoDeposit(amount);
+      if (response.data.success) {
+        setDemoBalance(parseFloat(response.data.data.new_balance));
+        await loadDemoData(); // Refresh all data
+        return response.data;
+      }
+      throw new Error(response.data.error || 'Deposit failed');
+    } catch (error) {
+      throw error;
+    }
   };
 
   const demoWithdraw = async (amount) => {
-    const withdrawAmount = parseFloat(amount);
-    if (withdrawAmount > demoBalance) {
-      throw new Error('Insufficient balance');
+    try {
+      const response = await demoAPI.demoWithdraw(amount);
+      if (response.data.success) {
+        setDemoBalance(parseFloat(response.data.data.new_balance));
+        await loadDemoData(); // Refresh all data
+        return response.data;
+      }
+      throw new Error(response.data.error || 'Withdrawal failed');
+    } catch (error) {
+      throw error;
     }
-    
-    const newBalance = demoBalance - withdrawAmount;
-    setDemoBalance(newBalance);
-    
-    const transaction = {
-      id: Date.now(),
-      type: 'Withdraw',
-      amount: withdrawAmount,
-      date: new Date().toISOString(),
-      status: 'Completed'
-    };
-    
-    setDemoTransactions(prev => [transaction, ...prev]);
-    return { success: true, newBalance, transaction };
-  };
-
-  const demoInvest = async (investmentData) => {
-    const investAmount = parseFloat(investmentData.amount);
-    if (investAmount > demoBalance) {
-      throw new Error('Insufficient balance');
-    }
-    
-    const newBalance = demoBalance - investAmount;
-    setDemoBalance(newBalance);
-    
-    const investment = {
-      id: Date.now(),
-      ...investmentData,
-      amount: investAmount,
-      date: new Date().toISOString(),
-      status: 'Active'
-    };
-    
-    setDemoInvestments(prev => [investment, ...prev]);
-    
-    const transaction = {
-      id: Date.now() + 1,
-      type: 'Investment',
-      amount: investAmount,
-      asset: investmentData.coin || investmentData.plan || investmentData.name || 'Investment',
-      date: new Date().toISOString(),
-      status: 'Completed'
-    };
-    
-    setDemoTransactions(prev => [transaction, ...prev]);
-    return { success: true, newBalance, investment, transaction };
   };
 
   const demoBuyCrypto = async (cryptoData) => {
-    const { coin, amount, price } = cryptoData;
-    const investAmount = parseFloat(amount);
-    const coinPrice = parseFloat(price);
-    
-    if (investAmount > demoBalance) {
-      throw new Error('Insufficient balance');
+    try {
+      const response = await demoAPI.demoBuyCrypto(cryptoData);
+      if (response.data.success) {
+        setDemoBalance(parseFloat(response.data.data.new_balance));
+        await loadDemoData(); // Refresh all data
+        return response.data;
+      }
+      throw new Error(response.data.error || 'Crypto purchase failed');
+    } catch (error) {
+      throw error;
     }
-    
-    const quantity = investAmount / coinPrice;
-    const newBalance = demoBalance - investAmount;
-    setDemoBalance(newBalance);
-    
-    const investment = {
-      id: Date.now(),
-      coin: coin,
-      amount: investAmount,
-      quantity: quantity,
-      priceAtPurchase: coinPrice,
-      date: new Date().toISOString(),
-      status: 'Active',
-      type: 'crypto'
-    };
-    
-    setDemoInvestments(prev => [investment, ...prev]);
-    
-    const transaction = {
-      id: Date.now() + 1,
-      type: 'Crypto Purchase',
-      amount: investAmount,
-      asset: coin,
-      quantity: quantity,
-      price: coinPrice,
-      date: new Date().toISOString(),
-      status: 'Completed'
-    };
-    
-    setDemoTransactions(prev => [transaction, ...prev]);
-    return { success: true, newBalance, investment, transaction };
   };
 
   const demoSellCrypto = async (sellData) => {
-    const { investmentId, amount, price } = sellData;
-    const sellAmount = parseFloat(amount);
-    const coinPrice = parseFloat(price);
-    
-    // Find the investment
-    const investment = demoInvestments.find(inv => inv.id === investmentId);
-    if (!investment) {
-      throw new Error('Investment not found');
+    try {
+      const response = await demoAPI.demoSellCrypto(sellData);
+      if (response.data.success) {
+        setDemoBalance(parseFloat(response.data.data.new_balance));
+        await loadDemoData(); // Refresh all data
+        return response.data;
+      }
+      throw new Error(response.data.error || 'Crypto sale failed');
+    } catch (error) {
+      throw error;
     }
-    
-    const sellValue = sellAmount * coinPrice;
-    const newBalance = demoBalance + sellValue;
-    setDemoBalance(newBalance);
-    
-    // Update or remove investment
-    setDemoInvestments(prev => {
-      return prev.map(inv => {
-        if (inv.id === investmentId) {
-          const newQuantity = inv.quantity - sellAmount;
-          if (newQuantity <= 0) {
-            return null; // Will be filtered out
-          }
-          return {
-            ...inv,
-            quantity: newQuantity,
-            amount: newQuantity * inv.priceAtPurchase
-          };
-        }
-        return inv;
-      }).filter(Boolean);
-    });
-    
-    const transaction = {
-      id: Date.now(),
-      type: 'Crypto Sale',
-      amount: sellValue,
-      asset: investment.coin,
-      quantity: sellAmount,
-      price: coinPrice,
-      date: new Date().toISOString(),
-      status: 'Completed'
-    };
-    
-    setDemoTransactions(prev => [transaction, ...prev]);
-    return { success: true, newBalance, transaction };
+  };
+
+  const demoInvest = async (investmentData) => {
+    try {
+      const response = await demoAPI.demoInvest(investmentData);
+      if (response.data.success) {
+        setDemoBalance(parseFloat(response.data.data.new_balance));
+        await loadDemoData(); // Refresh all data
+        return response.data;
+      }
+      throw new Error(response.data.error || 'Investment failed');
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const resetDemoAccount = async () => {
+    try {
+      setLoading(true);
+      const response = await demoAPI.resetDemoAccount();
+      if (response.data.success) {
+        await loadDemoData();
+        return response.data;
+      }
+      throw new Error(response.data.error || 'Reset failed');
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const value = {
@@ -226,6 +185,7 @@ export const DemoProvider = ({ children }) => {
     demoBalance,
     demoInvestments,
     demoTransactions,
+    loading,
     
     // Demo transaction functions
     demoDeposit,
@@ -233,8 +193,12 @@ export const DemoProvider = ({ children }) => {
     demoInvest,
     demoBuyCrypto,
     demoSellCrypto,
+    resetDemoAccount,
     
-    // Setters for manual updates
+    // Data refresh
+    loadDemoData,
+    
+    // Setters for manual updates (deprecated - use API functions)
     setDemoBalance,
     setDemoInvestments,
     setDemoTransactions

@@ -1,11 +1,12 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatDate } from '../utils/dateUtils';
 
 export default function SimpleChart({ investments }) {
   // Convert investments into time-series totals per date
   const grouped = {};
   investments.forEach((inv) => {
-    const d = new Date(inv.date).toLocaleDateString();
+    const d = formatDate(inv.created_at || inv.date);
     grouped[d] = (grouped[d] || 0) + (inv.amount || 0);
   });
   const data = Object.keys(grouped).map((k) => ({ date: k, amount: grouped[k] }));

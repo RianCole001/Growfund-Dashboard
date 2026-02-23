@@ -176,7 +176,43 @@ class DemoAPI {
   // Referral system
   async getReferralStats() {
     await delay(300);
-    return { data: demoData.referralStats };
+    
+    // Get referral bonus from platform settings
+    let referralBonus = 50; // Default fallback
+    try {
+      // Try to get the referral bonus from platform settings
+      const settingsResponse = await fetch('/api/settings/public/');
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        if (settingsData.success && settingsData.data.referralBonus) {
+          referralBonus = parseFloat(settingsData.data.referralBonus);
+        }
+      }
+    } catch (error) {
+      console.log('Demo: Using fallback referral bonus amount');
+    }
+    
+    // Update demo referral stats with current bonus amount
+    const updatedReferralStats = {
+      ...demoData.referralStats,
+      referral_code: demoData.referralStats.referralCode,
+      referral_link: `${window.location.origin}/register?ref=${demoData.referralStats.referralCode}`,
+      total_referrals: demoData.referralStats.totalReferrals,
+      active_referrals: demoData.referralStats.referrals.filter(r => r.status === 'Active').length,
+      pending_referrals: demoData.referralStats.referrals.filter(r => r.status === 'Pending').length,
+      total_earned: demoData.referralStats.totalEarnings,
+      pending_earnings: demoData.referralStats.pendingEarnings,
+      this_month_earnings: 450.00, // Demo value
+      referrals: demoData.referralStats.referrals.map(referral => ({
+        ...referral,
+        name: referral.email.split('@')[0], // Use email username as name
+        date: referral.joinDate,
+        earned: referralBonus, // Use admin-controlled bonus amount
+        status: referral.status.toLowerCase()
+      }))
+    };
+    
+    return { data: updatedReferralStats };
   }
 
   async generateReferralCode() {
@@ -186,7 +222,12 @@ class DemoAPI {
     demoData.user.referralCode = newCode;
     demoData.referralStats.referralCode = newCode;
     
-    return { data: { referralCode: newCode } };
+    return { 
+      data: { 
+        referralCode: newCode,
+        referral_link: `${window.location.origin}/register?ref=${newCode}`
+      } 
+    };
   }
 
   // Notifications

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function CoinModal({ coin, onClose, onBuy, onSell, balance = 0 }) {
+  const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [chartData, setChartData] = useState([]);
   const [metrics, setMetrics] = useState({});
@@ -74,6 +76,13 @@ export default function CoinModal({ coin, onClose, onBuy, onSell, balance = 0 })
 
     if (action === 'buy') {
       const usdAmount = purchaseType === 'amount' ? value : calculatedValue;
+      
+      // Validate against platform settings
+      if (usdAmount < settings.minCryptoInvestment) {
+        setError(`Minimum crypto investment is $${settings.minCryptoInvestment}`);
+        return;
+      }
+      
       if (usdAmount > balance) {
         setError(`Insufficient balance. Need $${usdAmount.toFixed(2)}, have $${balance.toFixed(2)}`);
         return;

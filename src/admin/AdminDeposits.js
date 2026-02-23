@@ -18,12 +18,8 @@ export default function AdminDeposits() {
   const fetchDeposits = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API endpoint when backend is ready
-      // const response = await adminAuthAPI.getDeposits();
-      // setDeposits(response.data);
-      
-      // No mock data - will show empty state until backend is connected
-      setDeposits([]);
+      const response = await adminAuthAPI.getDeposits();
+      setDeposits(response.data.data || []);
     } catch (error) {
       toast.error('Failed to load deposits');
       console.error(error);

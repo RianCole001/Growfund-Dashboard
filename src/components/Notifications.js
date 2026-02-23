@@ -1,93 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, TrendingUp, TrendingDown, DollarSign, Gift, AlertCircle, Info } from 'lucide-react';
+import { userAuthAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
-export default function Notifications({ onClose }) {
-  const [notifications, setNotifications] = useState([]);
+export default function Notifications({ 
+  notifications = [], 
+  unreadCount = 0, 
+  onClose, 
+  onMarkAsRead, 
+  onMarkAllAsRead, 
+  onDeleteNotification, 
+  onRefresh,
+  loading = false 
+}) {
   const [filter, setFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
 
-  // Admin notifications - these would come from backend admin panel
-  useEffect(() => {
-    // Simulate loading admin notifications
-    const loadAdminNotifications = async () => {
-      try {
-        setLoading(true);
-        
-        // In real app, this would be an API call to get admin notifications
-        // For now, we'll show a message that notifications come from admin
-        const adminNotifications = [
-          {
-            id: 1,
-            type: 'admin',
-            title: 'Welcome to GrowFund',
-            message: 'Welcome to our investment platform! Start exploring our features.',
-            icon: 'Info',
-            color: 'blue',
-            time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-            read: false,
-            from_admin: true
-          },
-          {
-            id: 2,
-            type: 'admin',
-            title: 'Platform Update',
-            message: 'We have updated our security features for better protection.',
-            icon: 'AlertCircle',
-            color: 'green',
-            time: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-            read: false,
-            from_admin: true
-          }
-        ];
-        
-        setNotifications(adminNotifications);
-      } catch (error) {
-        console.error('Error loading notifications:', error);
-        setNotifications([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAdminNotifications();
-  }, []);
-
-  const markAsRead = (id) => {
-    try {
-      const updated = notifications.map(n => 
-        n && n.id === id ? { ...n, read: true } : n
-      ).filter(Boolean); // Remove any null/undefined items
-      setNotifications(updated);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
+  // Helper function to get icon based on notification type
+  const getIconForType = (type) => {
+    switch (type) {
+      case 'success': return 'TrendingUp';
+      case 'warning': return 'AlertCircle';
+      case 'error': return 'AlertCircle';
+      case 'info':
+      default: return 'Info';
     }
   };
 
-  const markAllAsRead = () => {
-    try {
-      const updated = notifications.map(n => n ? { ...n, read: true } : null).filter(Boolean);
-      setNotifications(updated);
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+  // Helper function to get color based on notification type
+  const getColorForType = (type) => {
+    switch (type) {
+      case 'success': return 'green';
+      case 'warning': return 'yellow';
+      case 'error': return 'red';
+      case 'info':
+      default: return 'blue';
     }
   };
 
-  const deleteNotification = (id) => {
-    try {
-      const updated = notifications.filter(n => n && n.id !== id);
-      setNotifications(updated);
-    } catch (error) {
-      console.error('Error deleting notification:', error);
+  // Transform notifications to the expected format
+  const transformedNotifications = React.useMemo(() => {
+    return notifications.map(notification => ({
+      id: notification.id,
+      type: notification.type || 'info',
+      title: notification.title,
+      message: notification.message,
+      icon: getIconForType(notification.type),
+      color: getColorForType(notification.type),
+      time: notification.created_at,
+      read: notification.read,
+      from_admin: true
+    }));
+  }, [notifications]);
+
+  const markAsRead = async (id) => {
+    if (onMarkAsRead) {
+      await onMarkAsRead(id);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (onMarkAllAsRead) {
+      await onMarkAllAsRead();
+    }
+  };
+
+  const deleteNotification = async (id) => {
+    if (onDeleteNotification) {
+      await onDeleteNotification(id);
     }
   };
 
   const clearAll = () => {
     if (window.confirm('Clear all notifications?')) {
-      try {
-        setNotifications([]);
-      } catch (error) {
-        console.error('Error clearing notifications:', error);
-      }
+      transformedNotifications.forEach(notification => {
+        if (onDeleteNotification) {
+          onDeleteNotification(notification.id);
+        }
+      });
     }
   };
 
@@ -117,9 +106,9 @@ export default function Notifications({ onClose }) {
   // Safe filter function
   const filteredNotifications = React.useMemo(() => {
     try {
-      if (!Array.isArray(notifications)) return [];
+      if (!Array.isArray(transformedNotifications)) return [];
       
-      const validNotifications = notifications.filter(n => n && n.id);
+      const validNotifications = transformedNotifications.filter(n => n && n.id);
       
       if (filter === 'all') return validNotifications;
       if (filter === 'unread') return validNotifications.filter(n => !n.read);
@@ -128,17 +117,16 @@ export default function Notifications({ onClose }) {
       console.error('Error filtering notifications:', error);
       return [];
     }
-  }, [notifications, filter]);
+  }, [transformedNotifications, filter]);
 
-  const unreadCount = React.useMemo(() => {
+  const displayUnreadCount = React.useMemo(() => {
     try {
-      if (!Array.isArray(notifications)) return 0;
-      return notifications.filter(n => n && !n.read).length;
+      return unreadCount || 0;
     } catch (error) {
       console.error('Error counting unread notifications:', error);
       return 0;
     }
-  }, [notifications]);
+  }, [unreadCount]);
 
   // Icon mapping to prevent component crashes
   const getIconComponent = (iconName) => {
@@ -177,8 +165,8 @@ export default function Notifications({ onClose }) {
             <Bell className="w-6 h-6 text-green-400" />
             <div>
               <h3 className="text-lg font-semibold text-white">Admin Notifications</h3>
-              {unreadCount > 0 && (
-                <p className="text-xs text-gray-400">{unreadCount} unread</p>
+              {displayUnreadCount > 0 && (
+                <p className="text-xs text-gray-400">{displayUnreadCount} unread</p>
               )}
             </div>
           </div>
@@ -208,7 +196,7 @@ export default function Notifications({ onClose }) {
         </div>
 
         {/* Actions */}
-        {notifications.length > 0 && (
+        {transformedNotifications.length > 0 && (
           <div className="flex items-center justify-between p-4 border-b border-gray-700">
             <button
               onClick={markAllAsRead}
@@ -216,12 +204,22 @@ export default function Notifications({ onClose }) {
             >
               Mark all as read
             </button>
-            <button
-              onClick={clearAll}
-              className="text-sm text-red-400 hover:text-red-300 font-semibold"
-            >
-              Clear all
-            </button>
+            <div className="flex items-center space-x-3">
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  className="text-sm text-blue-400 hover:text-blue-300 font-semibold"
+                >
+                  Refresh
+                </button>
+              )}
+              <button
+                onClick={clearAll}
+                className="text-sm text-red-400 hover:text-red-300 font-semibold"
+              >
+                Clear all
+              </button>
+            </div>
           </div>
         )}
 

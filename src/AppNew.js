@@ -4,9 +4,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { userAuthAPI } from './services/api';
-import { demoAwareAPI } from './services/demoAwareAPI';
 import { useUserAuth } from './auth/UserAuthContext';
 import { useDemo } from './demo/DemoContext';
+
 
 import Profile from './components/Profile';
 import CryptoInvestment from './components/CryptoInvestment';
@@ -25,7 +25,10 @@ import TradeNow from './components/TradeNow';
 import Earn from './components/Earn';
 import Settings from './components/Settings';
 import Notifications from './components/Notifications';
+import NotificationBell from './components/NotificationBell';
 import Portfolio from './components/Portfolio';
+import Referrals from './components/Referrals';
+import { useNotifications } from './hooks/useNotifications';
 
 
 const cryptoWatchlist = [
@@ -36,12 +39,24 @@ const cryptoWatchlist = [
   { symbol: 'ADA', name: 'Cardano' },
   { symbol: 'SOL', name: 'Solana' },
   { symbol: 'DOT', name: 'Polkadot' },
+  { symbol: 'USDT', name: 'Tether' },
 ];
 
 export default function App() {
   const navigate = useNavigate();
   const { logoutUser } = useUserAuth();
-  const { isDemoMode, demoBalance, demoInvestments, demoTransactions, demoBuyCrypto, demoSellCrypto, demoDeposit, demoWithdraw, demoInvest } = useDemo();
+  const { 
+    isDemoMode, 
+    demoBalance, 
+    demoInvestments, 
+    demoTransactions,
+    demoDeposit,
+    demoWithdraw,
+    demoInvest,
+    demoBuyCrypto,
+    demoSellCrypto,
+    disableDemoMode // Add this to clear demo data on logout
+  } = useDemo();
   
   // Auth state - check if user has valid token (real or demo)
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -61,30 +76,36 @@ export default function App() {
   const [selectedCoin, setSelectedCoin] = useState(null);
   const [coinModalOpen, setCoinModalOpen] = useState(false);
 
-  // Demo data
+  // Notification system
+  const {
+    notifications,
+    unreadCount,
+    loading: notificationsLoading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refreshNotifications,
+    clearNotifications
+  } = useNotifications();
+
+  // Use demo data from DemoContext (backend-persisted)
+  const currentDemoBalance = isDemoMode ? demoBalance : 0;
+  const currentDemoInvestments = isDemoMode ? demoInvestments : [];
+  const currentDemoTransactions = isDemoMode ? demoTransactions : [];
+  // Real data states
   const [investments, setInvestments] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [prices, setPrices] = useState({});
-  const [loadingPrices, setLoadingPrices] = useState(false);
 
-  const coingecko = require('./utils/coingecko').default;
+  const [loadingPrices, setLoadingPrices] = useState(false);
 
   // Fetch user data from backend on mount or when authenticated
   useEffect(() => {
     let isMounted = true;
 
     const fetchUserData = async () => {
-      // Check for demo mode first
-      if (isDemoMode) {
-        if (isMounted) {
-          // Keep real user data, only use demo balance
-          setBalance(demoBalance);
-        }
-        return;
-      }
-
       const token = localStorage.getItem('user_access_token');
-      if (!token) {
+      if (!token && !isDemoMode) {
         if (isMounted) {
           setIsAuthenticated(false);
           setUser(null);
@@ -98,9 +119,9 @@ export default function App() {
       try {
         setLoading(true);
         const [userRes, profileRes, balanceRes] = await Promise.all([
-          demoAwareAPI.getCurrentUser(),
-          demoAwareAPI.getProfile(),
-          demoAwareAPI.getBalance(),
+          userAuthAPI.getCurrentUser(),
+          userAuthAPI.getProfile(),
+          userAuthAPI.getBalance(),
         ]);
 
         if (!isMounted) return;
@@ -129,7 +150,8 @@ export default function App() {
         // Save profile to localStorage for persistence
         localStorage.setItem('user_profile', JSON.stringify(profileData));
         
-        setBalance(parseFloat(balanceData.balance || 0));
+        // Use demo balance if in demo mode, otherwise use real balance
+        setBalance(isDemoMode ? currentDemoBalance : parseFloat(balanceData.balance || 0));
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -158,65 +180,130 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [navigate, isDemoMode, demoBalance]);
+  }, [navigate, isDemoMode, currentDemoBalance]); // Removed user dependency to prevent infinite loops
 
-  // Fetch watchlist data
+  // Clear all user data when authentication status changes (for clean logout/login transitions)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Clear all user-specific state when not authenticated
+      setUser(null);
+      setProfile(null);
+      setBalance(0);
+      setInvestments([]);
+      setTransactions([]);
+      setPrices({});
+      setWatchlistData([]);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch crypto prices from backend
   useEffect(() => {
     let isMounted = true;
 
-    const fetchWatchlist = async () => {
+    const fetchCryptoPrices = async () => {
       try {
-        if (isDemoMode) {
-          // Use demo prices
-          if (!isMounted) return;
-          
-          const watchlist = cryptoWatchlist.map(coin => {
-            const data = prices[coin.symbol] || {};
-            return {
-              symbol: coin.symbol,
-              name: coin.name,
-              price: data.price || 0,
-              change24h: data.change24h || 0,
-              change7d: data.change7d || 0,
-            };
-          });
-
-          setWatchlistData(watchlist);
-        } else {
-          // Use real coingecko data
-          const coingecko = require('./utils/coingecko').default;
-          const symbols = cryptoWatchlist.map(c => c.symbol);
-          const marketData = await coingecko.fetchMarketData(symbols);
-          
-          if (!isMounted) return;
-
-          const watchlist = cryptoWatchlist.map(coin => {
-            const data = marketData[coin.symbol] || {};
-            return {
-              symbol: coin.symbol,
-              name: coin.name,
-              price: data.price || 0,
-              change24h: data.change24h || 0,
-              change7d: data.change7d || 0,
-            };
-          });
-
-          setWatchlistData(watchlist);
+        setLoadingPrices(true);
+        
+        // Always fetch real prices from backend (including admin-controlled EXACOIN)
+        const response = await userAuthAPI.getCryptoPrices();
+        
+        if (response.data.success && isMounted) {
+          setPrices(response.data.data);
         }
       } catch (error) {
-        console.error('Error fetching watchlist:', error);
+        console.error('Error fetching crypto prices:', error);
+        // Fallback to default prices if API fails
+        if (isMounted) {
+          const fallbackPrices = {
+            EXACOIN: { price: 60.00, change24h: 45.20 },
+            BTC: { price: 64444.00, change24h: 2.10 },
+            ETH: { price: 3200.00, change24h: 1.80 },
+            BNB: { price: 420.00, change24h: 0.50 },
+            ADA: { price: 1.25, change24h: -0.80 },
+            SOL: { price: 120.00, change24h: 3.20 },
+            DOT: { price: 6.40, change24h: -1.20 },
+            USDT: { price: 1.00, change24h: 0.01 }
+          };
+          setPrices(fallbackPrices);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingPrices(false);
+        }
       }
     };
 
-    fetchWatchlist();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchWatchlist, 30000);
+    fetchCryptoPrices();
+
+    // Set up polling for price updates every 60 seconds
+    const interval = setInterval(fetchCryptoPrices, 60000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [isDemoMode, prices]);
+  }, [isDemoMode]);
+
+  // Fetch user investments and transactions when authenticated (not in demo mode)
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUserInvestmentsAndTransactions = async () => {
+      if (!isAuthenticated || isDemoMode) {
+        // Clear data if not authenticated or in demo mode
+        if (isMounted) {
+          setInvestments([]);
+          setTransactions([]);
+        }
+        return;
+      }
+
+      try {
+        // Fetch both investments and transactions
+        const [investmentsRes, transactionsRes] = await Promise.all([
+          userAuthAPI.getInvestments(),
+          userAuthAPI.getTransactions()
+        ]);
+
+        if (isMounted) {
+          if (investmentsRes.data.success) {
+            setInvestments(investmentsRes.data.data || []);
+          }
+          
+          if (transactionsRes.data.success) {
+            setTransactions(transactionsRes.data.data || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user investments/transactions:', error);
+        if (isMounted) {
+          setInvestments([]);
+          setTransactions([]);
+        }
+      }
+    };
+
+    fetchUserInvestmentsAndTransactions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, isDemoMode, user?.email]); // Added user?.email as dependency to refetch when user changes
+
+  // Update watchlist data when prices change
+  useEffect(() => {
+    const watchlist = cryptoWatchlist.map(coin => {
+      const data = prices[coin.symbol] || {};
+      return {
+        symbol: coin.symbol,
+        name: coin.name,
+        price: data.price || 0,
+        change24h: data.change24h || 0,
+        change7d: data.change7d || 0,
+      };
+    });
+    setWatchlistData(watchlist);
+  }, [prices]);
 
   const addToast = (msg, type = 'success') => {
     if (type === 'success') {
@@ -258,12 +345,45 @@ export default function App() {
     localStorage.removeItem('user_access_token');
     localStorage.removeItem('user_refresh_token');
     localStorage.removeItem('user_data');
+    localStorage.removeItem('user_profile'); // Clear cached profile data
+    localStorage.removeItem('last_notification_token'); // Clear notification token tracking
     
-    // Update state
+    // Clear all user-specific cached data
+    localStorage.removeItem('saved_cards'); // Clear saved payment cards
+    localStorage.removeItem('coingecko_prices'); // Clear cached crypto prices
+    
+    // Clear demo mode data if user was in demo mode
+    localStorage.removeItem('demo_access_token');
+    localStorage.removeItem('demo_mode');
+    
+    // Disable demo mode to clear demo state
+    disableDemoMode();
+    
+    // Clear notifications
+    clearNotifications();
+    
+    // Clear any other user-specific localStorage items
+    // Note: We keep admin_crypto_prices as it's global admin settings, not user-specific
+    
+    // Clear all user-specific state data
     setIsAuthenticated(false);
     setUser(null);
     setProfile(null);
+    setBalance(0);
+    setInvestments([]);
+    setTransactions([]);
+    setPrices({});
+    setWatchlistData([]);
+    
+    // Reset UI state
     setPage('Dashboard');
+    setSidebarOpen(false);
+    setProfileOpenEdit(false);
+    setNotificationsOpen(false);
+    setSelectedCoin(null);
+    setCoinModalOpen(false);
+    setLoading(false);
+    setLoadingPrices(false);
     
     // Update auth context
     logoutUser();
@@ -293,7 +413,7 @@ export default function App() {
       }
       
       // Call API with FormData (don't set Content-Type header, let browser set it)
-      const response = await demoAwareAPI.updateProfile(dataToSend);
+      const response = await userAuthAPI.updateProfile(dataToSend);
       
       // Update profile state with response data
       const updatedData = response.data.data || response.data;
@@ -330,11 +450,12 @@ export default function App() {
   const handleBuyCrypto = async (cryptoData) => {
     try {
       if (isDemoMode) {
+        // Use DemoContext demo functions
         await demoBuyCrypto(cryptoData);
         addToast(`Demo: Bought ${cryptoData.quantity?.toFixed(4)} ${cryptoData.coin} for $${cryptoData.amount?.toFixed(2)}`);
       } else {
         // Real crypto purchase logic would go here
-        await demoAwareAPI.buyCrypto(cryptoData);
+        await userAuthAPI.buyCrypto(cryptoData);
         addToast(`Bought ${cryptoData.quantity?.toFixed(4)} ${cryptoData.coin} for $${cryptoData.amount?.toFixed(2)}`);
       }
     } catch (error) {
@@ -346,16 +467,45 @@ export default function App() {
   const handleSellCrypto = async (sellData) => {
     try {
       if (isDemoMode) {
+        // Use DemoContext demo functions
         await demoSellCrypto(sellData);
         addToast(`Demo: Sold ${sellData.quantity?.toFixed(4)} ${sellData.coin} for $${sellData.amount?.toFixed(2)}`);
       } else {
-        // Real crypto sale logic would go here
-        await demoAwareAPI.sellCrypto(sellData);
-        addToast(`Sold ${sellData.quantity?.toFixed(4)} ${sellData.coin} for $${sellData.amount?.toFixed(2)}`);
+        // Real crypto sale logic
+        const response = await userAuthAPI.sellCrypto(sellData);
+        if (response.data.success) {
+          // Update balance from response
+          const newBalance = parseFloat(response.data.data.new_balance) || balance;
+          setBalance(newBalance);
+          addToast(`Sold ${sellData.quantity?.toFixed(4)} ${sellData.coin} for $${sellData.amount?.toFixed(2)}`);
+        } else {
+          throw new Error(response.data.message || 'Sale failed');
+        }
+      }
+      
+      // Refresh investments and transactions to reflect the sale
+      if (!isDemoMode) {
+        try {
+          const [investmentsRes, transactionsRes] = await Promise.all([
+            userAuthAPI.getInvestments(),
+            userAuthAPI.getTransactions()
+          ]);
+          
+          if (investmentsRes.data.success) {
+            setInvestments(investmentsRes.data.data || []);
+          }
+          
+          if (transactionsRes.data.success) {
+            setTransactions(transactionsRes.data.data || []);
+          }
+        } catch (error) {
+          console.error('Error refreshing data after sale:', error);
+        }
       }
     } catch (error) {
       console.error('Error selling crypto:', error);
       addToast(error.message || 'Failed to sell crypto', 'error');
+      throw error; // Re-throw so Portfolio component can handle it
     }
   };
 
@@ -366,7 +516,7 @@ export default function App() {
         addToast(`Demo: Deposited $${parseFloat(amount).toFixed(2)}`);
       } else {
         // Real deposit logic would go here
-        await demoAwareAPI.deposit(amount);
+        await userAuthAPI.deposit(amount);
         addToast(`Deposited $${parseFloat(amount).toFixed(2)}`);
       }
     } catch (error) {
@@ -382,7 +532,7 @@ export default function App() {
         addToast(`Demo: Withdrew $${parseFloat(amount).toFixed(2)}`);
       } else {
         // Real withdrawal logic would go here
-        await demoAwareAPI.withdraw(amount);
+        await userAuthAPI.withdraw(amount);
         addToast(`Withdrew $${parseFloat(amount).toFixed(2)}`);
       }
     } catch (error) {
@@ -398,7 +548,7 @@ export default function App() {
         addToast(`Demo: Invested $${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
       } else {
         // Real investment logic would go here
-        await demoAwareAPI.createInvestment(investmentData);
+        await userAuthAPI.createInvestment(investmentData);
         addToast(`Invested $${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
       }
     } catch (error) {
@@ -435,7 +585,7 @@ export default function App() {
                   GrowFund
                 </span>
                 <nav className="hidden lg:flex space-x-1 flex-1 overflow-x-auto">
-                  {['Dashboard', 'Portfolio', 'Profile', 'Crypto', 'Trade Now', 'Earn', 'Capital Plan', 'Real Estate', 'Balances', 'Deposits', 'Withdrawals', 'Transactions'].map((item) => (
+                  {['Dashboard', 'Portfolio', 'Profile', 'Crypto', 'Trade Now', 'Earn', 'Capital Plan', 'Real Estate', 'Referrals', 'Balances', 'Deposits', 'Withdrawals', 'Transactions'].map((item) => (
                     <button 
                       key={item} 
                       onClick={() => setPage(item === 'Capital Plan' ? 'Capital Appreciation Plan' : item)} 
@@ -456,7 +606,7 @@ export default function App() {
                 {/* Balance Display */}
                 <div className="hidden sm:flex items-center bg-gray-700 px-3 py-2 rounded-lg">
                   <span className="text-xs text-gray-400 mr-2">Balance:</span>
-                  <span className="text-sm font-bold text-green-400">${(isDemoMode ? demoBalance : balance).toLocaleString()}</span>
+                  <span className="text-sm font-bold text-green-400">${(isDemoMode ? currentDemoBalance : balance).toLocaleString()}</span>
                   {isDemoMode && <span className="ml-2 text-xs text-orange-400">(Demo)</span>}
                 </div>
 
@@ -476,14 +626,11 @@ export default function App() {
                 </div>
 
                 {/* Notifications Bell */}
-                <button
+                <NotificationBell 
+                  unreadCount={unreadCount}
                   onClick={() => setNotificationsOpen(true)}
-                  className="relative p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                  aria-label="Notifications"
-                >
-                  <Bell className="w-5 h-5 text-gray-300" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                  loading={notificationsLoading}
+                />
 
                 {/* Settings Icon */}
                 <button
@@ -508,7 +655,7 @@ export default function App() {
             <div className="sm:hidden mt-2 flex items-center justify-between bg-gray-700 px-3 py-2 rounded-lg">
               <span className="text-xs text-gray-400">Balance:</span>
               <div className="flex items-center">
-                <span className="text-sm font-bold text-green-400">${(isDemoMode ? demoBalance : balance).toLocaleString()}</span>
+                <span className="text-sm font-bold text-green-400">${(isDemoMode ? currentDemoBalance : balance).toLocaleString()}</span>
                 {isDemoMode && <span className="ml-2 text-xs text-orange-400">(Demo)</span>}
               </div>
             </div>
@@ -520,10 +667,10 @@ export default function App() {
           <div className="flex-grow mr-0 lg:mr-4">
             {page === 'Dashboard' && (
               <Overview 
-                balance={isDemoMode ? demoBalance : balance} 
-                investments={isDemoMode ? demoInvestments : investments} 
+                balance={isDemoMode ? currentDemoBalance : balance} 
+                investments={isDemoMode ? currentDemoInvestments : investments} 
                 prices={prices} 
-                transactions={isDemoMode ? demoTransactions : transactions} 
+                transactions={isDemoMode ? currentDemoTransactions : transactions} 
                 loading={loadingPrices} 
                 onNavigate={(p) => setPage(p)} 
                 userName={profile?.name || user?.email || 'User'} 
@@ -535,15 +682,15 @@ export default function App() {
 
             {page === 'Portfolio' && (
               <Portfolio 
-                investments={isDemoMode ? demoInvestments : investments} 
-                balance={isDemoMode ? demoBalance : balance} 
+                investments={isDemoMode ? currentDemoInvestments : investments} 
+                balance={isDemoMode ? currentDemoBalance : balance} 
                 prices={prices} 
                 loading={loadingPrices}
                 onSellCrypto={handleSellCrypto}
               />
             )}
 
-            {page === 'Trade Now' && <TradeNow balance={isDemoMode ? demoBalance : balance} onTrade={() => {}} prices={prices} />}
+            {page === 'Trade Now' && <TradeNow balance={isDemoMode ? currentDemoBalance : balance} onTrade={() => {}} prices={prices} />}
 
             {page === 'Earn' && <Earn userEmail={profile?.email} onNotify={addToast} />}
 
@@ -566,14 +713,23 @@ export default function App() {
               <CoinModal 
                 coin={selectedCoin} 
                 onClose={() => setCoinModalOpen(false)} 
-                balance={isDemoMode ? demoBalance : balance} 
+                balance={isDemoMode ? currentDemoBalance : balance} 
                 onBuy={handleBuyCrypto} 
                 onSell={handleSellCrypto} 
               />
             )}
 
             {notificationsOpen && (
-              <Notifications onClose={() => setNotificationsOpen(false)} />
+              <Notifications 
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onClose={() => setNotificationsOpen(false)}
+                onMarkAsRead={markAsRead}
+                onMarkAllAsRead={markAllAsRead}
+                onDeleteNotification={deleteNotification}
+                onRefresh={refreshNotifications}
+                loading={notificationsLoading}
+              />
             )}
 
             {/* Mobile Sidebar */}
@@ -593,24 +749,26 @@ export default function App() {
 
             {page === 'Capital Appreciation Plan' && (
               <div className="space-y-4">
-                <CapitalPlan investments={isDemoMode ? demoInvestments : investments} balance={isDemoMode ? demoBalance : balance} onInvest={handleInvest} onNotify={addToast} />
+                <CapitalPlan investments={isDemoMode ? currentDemoInvestments : investments} balance={isDemoMode ? currentDemoBalance : balance} onInvest={handleInvest} onNotify={addToast} />
                 <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-white">
                   <h3 className="text-lg font-semibold text-green-500 mb-3">Your Investments</h3>
-                  {(isDemoMode ? demoInvestments : investments).length === 0 && <div className="text-sm text-gray-300">No investments yet.</div>}
+                  {(isDemoMode ? currentDemoInvestments : investments).length === 0 && <div className="text-sm text-gray-300">No investments yet.</div>}
                 </div>
-                <SimpleChart investments={isDemoMode ? demoInvestments : investments} />
+                <SimpleChart investments={isDemoMode ? currentDemoInvestments : investments} />
               </div>
             )}
 
-            {page === 'Real Estate' && <RealEstate onInvest={handleInvest} />}
+            {page === 'Real Estate' && <RealEstate balance={isDemoMode ? currentDemoBalance : balance} onInvest={handleInvest} />}
 
-            {page === 'Balances' && <Balances balance={isDemoMode ? demoBalance : balance} investments={isDemoMode ? demoInvestments : investments} />}
+            {page === 'Referrals' && <Referrals />}
+
+            {page === 'Balances' && <Balances balance={isDemoMode ? currentDemoBalance : balance} investments={isDemoMode ? currentDemoInvestments : investments} />}
 
             {page === 'Deposits' && <Deposits onDeposit={handleDeposit} />}
 
-            {page === 'Withdrawals' && <Withdrawals balance={isDemoMode ? demoBalance : balance} onWithdraw={handleWithdraw} />}
+            {page === 'Withdrawals' && <Withdrawals balance={isDemoMode ? currentDemoBalance : balance} onWithdraw={handleWithdraw} />}
 
-            {page === 'Transactions' && <TransactionHistory transactions={isDemoMode ? demoTransactions : transactions} />}
+            {page === 'Transactions' && <TransactionHistory transactions={isDemoMode ? currentDemoTransactions : transactions} />}
           </div>
 
           {/* Sidebar */}

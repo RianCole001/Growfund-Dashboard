@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatDate, safeParseDate } from '../utils/dateUtils';
 import { CSVLink } from 'react-csv';
 
 export default function TransactionHistory({ transactions }) {
@@ -10,8 +11,8 @@ export default function TransactionHistory({ transactions }) {
 
   const filtered = useMemo(() => transactions.filter((t) => {
     if (filterType !== 'All' && t.type !== filterType) return false;
-    if (fromDate && new Date(t.date) < new Date(fromDate)) return false;
-    if (toDate && new Date(t.date) > new Date(toDate)) return false;
+    if (fromDate && safeParseDate(t.created_at || t.date) < new Date(fromDate)) return false;
+    if (toDate && safeParseDate(t.created_at || t.date) > new Date(toDate)) return false;
     return true;
   }), [transactions, filterType, fromDate, toDate]);
 
@@ -46,7 +47,7 @@ export default function TransactionHistory({ transactions }) {
           <tbody>
             {filtered.map((t, i) => (
               <tr key={i} className="odd:bg-gray-700 even:bg-gray-600">
-                <td className="p-2">{new Date(t.date).toLocaleString()}</td>
+                <td className="p-2">{formatDate(t.created_at || t.date)}</td>
                 <td className="p-2">{t.type}</td>
                 <td className="p-2">{t.asset || t.coin || '-'}</td>
                 <td className="p-2">${(t.amount || 0).toLocaleString()}</td>

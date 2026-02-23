@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { userAuthAPI } from '../services/api';
+import { settingsService } from '../services/settingsAPI';
 import { Gift } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -12,23 +13,41 @@ export default function RegisterPage() {
   const [password2, setPassword2] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [referralBonus, setReferralBonus] = useState(null);
+  const [referralBonusAmount, setReferralBonusAmount] = useState(50); // Default fallback
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Get referral code from URL on mount
+  // Get referral code from URL and fetch referral bonus amount
   useEffect(() => {
+    // Fetch referral bonus amount from platform settings
+    const fetchReferralBonus = async () => {
+      try {
+        const response = await settingsService.getPublicSettings();
+        if (response.success) {
+          const bonusAmount = parseFloat(response.data.referralBonus) || 50;
+          setReferralBonusAmount(bonusAmount);
+        }
+      } catch (error) {
+        console.error('Error fetching referral bonus:', error);
+        // Keep default fallback value
+      }
+    };
+
+    fetchReferralBonus();
+
     const ref = searchParams.get('ref');
     if (ref) {
       setReferralCode(ref);
+      // Set referral bonus info (will be updated with actual amount once fetched)
       setReferralBonus({
         code: ref,
-        bonus: 5.00,
-        message: 'You will receive $5 bonus when you complete registration!'
+        bonus: referralBonusAmount,
+        message: `You will receive $${referralBonusAmount} bonus when you complete registration!`
       });
     }
-  }, [searchParams]);
+  }, [searchParams, referralBonusAmount]);
 
   // Validation rules
   const validateForm = () => {
@@ -107,7 +126,7 @@ export default function RegisterPage() {
       });
 
       if (referralCode) {
-        toast.success(`Registration successful! You earned $5 referral bonus! Please login.`);
+        toast.success(`Registration successful! You earned $${referralBonusAmount} referral bonus! Please login.`);
       } else {
         toast.success('Registration successful! Please login with your credentials.');
       }

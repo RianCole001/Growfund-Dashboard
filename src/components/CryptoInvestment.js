@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Eye } from 'lucide-react';
 
 const coins = [
-  { symbol: 'EXACOIN', name: 'ExaCoin', price: 60.00, icon: 'https://cryptologos.cc/logos/stellar-xlm-logo.png', isHot: true, change: 45.2 },
-  { symbol: 'BTC', name: 'Bitcoin', price: 64444, icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' },
-  { symbol: 'ETH', name: 'Ethereum', price: 3200, icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
-  { symbol: 'BNB', name: 'Binance Coin', price: 420, icon: 'https://cryptologos.cc/logos/bnb-bnb-logo.png' },
-  { symbol: 'ADA', name: 'Cardano', price: 1.25, icon: 'https://cryptologos.cc/logos/cardano-ada-logo.png' },
-  { symbol: 'SOL', name: 'Solana', price: 120, icon: 'https://cryptologos.cc/logos/solana-sol-logo.png' },
-  { symbol: 'DOT', name: 'Polkadot', price: 6.4, icon: 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png' },
+  { symbol: 'EXACOIN', name: 'ExaCoin', icon: 'https://cryptologos.cc/logos/stellar-xlm-logo.png', isHot: true },
+  { symbol: 'OPTCOIN', name: 'OptCoin', icon: 'https://cryptologos.cc/logos/optimism-ethereum-op-logo.png', isHot: false },
+  { symbol: 'BTC', name: 'Bitcoin', icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' },
+  { symbol: 'ETH', name: 'Ethereum', icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
+  { symbol: 'BNB', name: 'Binance Coin', icon: 'https://cryptologos.cc/logos/bnb-bnb-logo.png' },
+  { symbol: 'ADA', name: 'Cardano', icon: 'https://cryptologos.cc/logos/cardano-ada-logo.png' },
+  { symbol: 'SOL', name: 'Solana', icon: 'https://cryptologos.cc/logos/solana-sol-logo.png' },
+  { symbol: 'DOT', name: 'Polkadot', icon: 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png' },
+  { symbol: 'USDT', name: 'Tether', icon: 'https://cryptologos.cc/logos/tether-usdt-logo.png' },
 ];
 
 function makeSparkline(price) {
@@ -19,6 +21,52 @@ function makeSparkline(price) {
 }
 
 export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = false, onViewCoin }) {
+  const [localPrices, setLocalPrices] = useState(prices);
+
+  // Listen for admin price changes in localStorage
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'admin_crypto_prices') {
+        // Force re-render when admin prices change
+        setLocalPrices({...prices});
+      }
+    };
+
+    // Listen for localStorage changes from other tabs/windows
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Listen for custom events from same tab (when admin updates prices)
+    const handleAdminPriceUpdate = () => {
+      setLocalPrices({...prices});
+    };
+    
+    window.addEventListener('adminPriceUpdate', handleAdminPriceUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('adminPriceUpdate', handleAdminPriceUpdate);
+    };
+  }, [prices]);
+
+  // Update local prices when props change
+  useEffect(() => {
+    setLocalPrices(prices);
+  }, [prices]);
+
+  // Get admin-controlled price for EXACOIN and OPTCOIN
+  const getDisplayPrice = (symbol) => {
+    if (symbol === 'EXACOIN' || symbol === 'OPTCOIN') {
+      const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
+      if (adminPrices[symbol] && adminPrices[symbol].price) {
+        return parseFloat(adminPrices[symbol].price) || 0;
+      }
+      // Fallback prices for admin-controlled coins
+      if (symbol === 'EXACOIN') return 62.00;
+      if (symbol === 'OPTCOIN') return 85.30;
+    }
+    return localPrices[symbol]?.price || 0;
+  };
+
   if (loading) {
     return (
       <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg text-white">
@@ -49,8 +97,8 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
       <div className="hidden md:block">
         <ul className="space-y-2">
           {coins.map((c) => {
-            const market = prices[c.symbol] || {};
-            const price = market.price || c.price;
+            const market = localPrices[c.symbol] || {};
+            const price = getDisplayPrice(c.symbol); // Use admin price for EXACOIN
             const change = market.change24h || 0;
             const spark = makeSparkline(price);
             const isPositive = change >= 0;
@@ -89,18 +137,18 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                     <div className="font-semibold text-lg">${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
                     <div className={`text-sm flex items-center justify-end ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                       {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                      {c.isHot ? `+${c.change.toFixed(2)}%` : change ? `${change.toFixed(2)}%` : '0.00%'}
+                      {change ? `${change > 0 ? '+' : ''}${change.toFixed(2)}%` : '0.00%'}
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <button 
-                      onClick={() => onSelectCoin(c)} 
+                      onClick={() => onSelectCoin({...c, price})} 
                       className="bg-green-500 px-4 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold text-sm shadow-lg"
                     >
                       Invest
                     </button>
                     <button 
-                      onClick={() => onViewCoin && onViewCoin(c)} 
+                      onClick={() => onViewCoin && onViewCoin({...c, price})} 
                       className="bg-gray-600 p-2 rounded-lg hover:bg-gray-500 transition-colors"
                       title="View Details"
                     >
@@ -117,8 +165,8 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
       {/* Mobile View - Card Grid */}
       <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
         {coins.map((c) => {
-          const market = prices[c.symbol] || {};
-          const price = market.price || c.price;
+          const market = localPrices[c.symbol] || {};
+          const price = getDisplayPrice(c.symbol); // Use admin price for EXACOIN
           const change = market.change24h || 0;
           const isPositive = change >= 0;
           
@@ -146,7 +194,7 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                 </div>
                 <div className={`flex items-center text-sm font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                   {isPositive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {c.isHot ? `+${c.change.toFixed(2)}%` : change ? `${change.toFixed(2)}%` : '0.00%'}
+                  {change ? `${change > 0 ? '+' : ''}${change.toFixed(2)}%` : '0.00%'}
                 </div>
               </div>
 
@@ -156,13 +204,13 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
 
               <div className="flex space-x-2">
                 <button 
-                  onClick={() => onSelectCoin(c)} 
+                  onClick={() => onSelectCoin({...c, price})} 
                   className="flex-1 bg-green-500 px-3 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold text-sm shadow-lg"
                 >
                   Invest
                 </button>
                 <button 
-                  onClick={() => onViewCoin && onViewCoin(c)} 
+                  onClick={() => onViewCoin && onViewCoin({...c, price})} 
                   className="bg-gray-600 p-2 rounded-lg hover:bg-gray-500 transition-colors"
                   title="View"
                 >

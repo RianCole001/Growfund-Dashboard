@@ -22,52 +22,11 @@ export default function AdminApp() {
   const storage = require('./utils/storage').default;
   const [page, setPage] = useState(storage.get('adminPage', 'Dashboard'));
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [adminAuth, setAdminAuth] = useState(storage.get('adminAuth', { loggedIn: false }));
-  const [showLoginGate, setShowLoginGate] = useState(!storage.get('adminAuth', { loggedIn: false }).loggedIn);
-  const [loading, setLoading] = useState(false);
-  const { loginAdmin, logoutAdmin } = useAdminAuth();
+  const { logoutAdmin } = useAdminAuth();
 
   const setPageAndPersist = (p) => { 
     setPage(p); 
     storage.set('adminPage', p); 
-  };
-
-  const handleAdminLogin = async (credentials) => {
-    setLoading(true);
-    try {
-      // Try to login with backend
-      const response = await adminAuthAPI.login(credentials.email, credentials.password);
-      
-      // Check if user is admin (staff or superuser)
-      if (!response.data.user.is_staff && !response.data.user.is_superuser) {
-        toast.error('Admin access required');
-        return;
-      }
-      
-      // Store tokens with admin prefix
-      localStorage.setItem('admin_access_token', response.data.tokens.access);
-      localStorage.setItem('admin_refresh_token', response.data.tokens.refresh);
-      localStorage.setItem('admin_data', JSON.stringify(response.data.user));
-      
-      // Update auth context
-      loginAdmin(response.data.tokens.access, response.data.user);
-      
-      const nextAuth = { 
-        loggedIn: true, 
-        user: response.data.user.email, 
-        role: 'admin',
-        userId: response.data.user.id
-      };
-      setAdminAuth(nextAuth);
-      storage.set('adminAuth', nextAuth);
-      setShowLoginGate(false);
-      toast.success('Welcome back, Admin!');
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Invalid credentials';
-      toast.error(errorMsg);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleAdminLogout = () => {
@@ -75,75 +34,10 @@ export default function AdminApp() {
     localStorage.removeItem('admin_refresh_token');
     localStorage.removeItem('admin_data');
     logoutAdmin();
-    setAdminAuth({ loggedIn: false });
     storage.set('adminAuth', { loggedIn: false });
-    setShowLoginGate(true);
     toast.success('Logged out successfully');
+    navigate('/admin/login', { replace: true });
   };
-
-  // Login Gate
-  if (showLoginGate) {
-    return (
-      <>
-        <Toaster position="top-right" />
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-gray-900 text-white min-h-screen font-sans flex items-center justify-center p-4"
-        >
-        <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
-              <TrendingUp className="w-12 h-12 text-green-500 mr-3" />
-              <h1 className="text-4xl font-bold text-green-500">GrowFund</h1>
-            </div>
-            <p className="text-gray-400">Admin Portal</p>
-          </div>
-
-          <div className="bg-gray-700 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4 text-white">Admin Sign In</h2>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const email = e.target.email.value;
-              const password = e.target.password.value;
-              handleAdminLogin({ email, password });
-            }}>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-300 block mb-2">Email</label>
-                  <input 
-                    name="email"
-                    type="email"
-                    placeholder="admin@growfund.com"
-                    disabled={loading}
-                    className="w-full bg-gray-600 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300 block mb-2">Password</label>
-                  <input 
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    disabled={loading}
-                    className="w-full bg-gray-600 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                >
-                  {loading ? 'Signing in...' : 'Sign In'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </motion.div>
-      </>
-    );
-  }
 
   return (
     <>

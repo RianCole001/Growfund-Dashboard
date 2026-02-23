@@ -6,21 +6,29 @@ const symbolToId = {
   SOL: 'solana',
   DOT: 'polkadot',
   EXACOIN: 'exacoin', // Placeholder for demo
+  OPTCOIN: 'optcoin', // Placeholder for demo
 };
 
-// Generate bullish trend data for EXACOIN (demo coin)
-function generateExacoinBullishData(days = 7) {
+// Generate bullish trend data for admin-controlled coins (demo coins)
+function generateAdminCoinBullishData(coin, days = 7) {
   const data = [];
-  const startPrice = 60.00; // Set EXA coin base price to $60
-  let currentPrice = startPrice;
+  
+  // Check if admin has set a custom price, otherwise use base price
+  const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
+  const basePrices = { EXACOIN: 62.00, OPTCOIN: 85.30 };
+  const basePrice = (adminPrices[coin] && adminPrices[coin].price) 
+    ? parseFloat(adminPrices[coin].price) 
+    : basePrices[coin] || 100.00; // Use admin price if available, otherwise use default
+    
+  let currentPrice = basePrice;
   
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - (days - i - 1));
     
-    // Generate bullish trend with upward bias
-    const dailyChange = (Math.random() * 0.08) + 0.02; // 2-10% daily increase
-    currentPrice = currentPrice * (1 + dailyChange);
+    // Generate small variations around the base price (±2%)
+    const variation = (Math.random() - 0.5) * 0.04; // -2% to +2%
+    currentPrice = basePrice * (1 + variation);
     
     data.push([date.getTime(), currentPrice]);
   }
@@ -28,16 +36,29 @@ function generateExacoinBullishData(days = 7) {
   return data;
 }
 
-// Generate bullish market data for EXACOIN
-function generateExacoinMarketData() {
-  const startPrice = 60.00; // Set EXA coin base price to $60
-  const currentPrice = startPrice * 1.45; // 45% increase from base
+// Generate bullish market data for admin-controlled coins
+function generateAdminCoinMarketData(coin) {
+  const basePrices = { EXACOIN: 62.00, OPTCOIN: 85.30 };
+  const basePrice = basePrices[coin] || 100.00;
+  
+  // Check if admin has set a custom price
+  const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
+  const currentPrice = (adminPrices[coin] && adminPrices[coin].price) 
+    ? parseFloat(adminPrices[coin].price) 
+    : basePrice; // Use admin price if available, otherwise use base price
+  
+  const changeData = {
+    EXACOIN: { change24h: 8.5, change7d: 45.2, change30d: 120.5 },
+    OPTCOIN: { change24h: 12.4, change7d: 8.6, change30d: 25.7 }
+  };
+  
+  const changes = changeData[coin] || { change24h: 5.0, change7d: 10.0, change30d: 20.0 };
   
   return {
     price: currentPrice,
-    change24h: 8.5,
-    change7d: 45.2,
-    change30d: 120.5,
+    change24h: changes.change24h,
+    change7d: changes.change7d,
+    change30d: changes.change30d,
     market_cap: currentPrice * 1000000000, // Mock market cap
   };
 }
@@ -64,13 +85,16 @@ async function fetchPricesUSD(symbols = []) {
 async function fetchMarketData(symbols = []) {
   const out = {};
   
-  // Handle EXACOIN separately
-  if (symbols.includes('EXACOIN')) {
-    out['EXACOIN'] = generateExacoinMarketData();
-  }
+  // Handle admin-controlled coins separately (EXACOIN, OPTCOIN)
+  const adminCoins = ['EXACOIN', 'OPTCOIN'];
+  adminCoins.forEach(coin => {
+    if (symbols.includes(coin)) {
+      out[coin] = generateAdminCoinMarketData(coin);
+    }
+  });
   
-  const nonExaSymbols = symbols.filter(s => s !== 'EXACOIN');
-  const ids = nonExaSymbols.map((s) => symbolToId[s]).filter(Boolean).join(',');
+  const nonAdminSymbols = symbols.filter(s => !adminCoins.includes(s));
+  const ids = nonAdminSymbols.map((s) => symbolToId[s]).filter(Boolean).join(',');
   
   if (ids) {
     // Request multiple period changes (24h, 7d, 30d)
@@ -95,8 +119,8 @@ async function fetchMarketData(symbols = []) {
     } catch (e) {
       // Fallback to simple prices
       try {
-        const simple = await fetchPricesUSD(nonExaSymbols);
-        nonExaSymbols.forEach((s) => {
+        const simple = await fetchPricesUSD(nonAdminSymbols);
+        nonAdminSymbols.forEach((s) => {
           if (!out[s] && simple[s]) out[s] = { price: simple[s], change24h: undefined };
         });
       } catch (e2) {}
@@ -110,10 +134,10 @@ async function fetchMarketData(symbols = []) {
 
 // Fetch coin market chart + additional metrics for a single symbol
 async function fetchCoinMarketChart(symbol, days = 7) {
-  // Handle EXACOIN specially with bullish demo data
-  if (symbol === 'EXACOIN') {
-    const prices = generateExacoinBullishData(days);
-    const marketData = generateExacoinMarketData();
+  // Handle admin-controlled coins specially with bullish demo data
+  if (symbol === 'EXACOIN' || symbol === 'OPTCOIN') {
+    const prices = generateAdminCoinBullishData(symbol, days);
+    const marketData = generateAdminCoinMarketData(symbol);
     return {
       prices,
       current_price: marketData.price,
@@ -140,5 +164,5 @@ async function fetchCoinMarketChart(symbol, days = 7) {
   }
 }
 
-const coingecko = { fetchPricesUSD, symbolToId, fetchMarketData, fetchCoinMarketChart, generateExacoinBullishData, generateExacoinMarketData };
+const coingecko = { fetchPricesUSD, symbolToId, fetchMarketData, fetchCoinMarketChart, generateAdminCoinBullishData, generateAdminCoinMarketData };
 export default coingecko;

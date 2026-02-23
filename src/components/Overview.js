@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { safeParseDate, formatDate } from '../utils/dateUtils';
 
 export default function Overview({ balance, investments, prices, transactions = [], loading = false, onNavigate, userName = 'User', profile = {} }) {
   const [profilePct, setProfilePct] = useState(0);
   const [profileData, setProfileData] = useState({});
+  const [priceUpdateTrigger, setPriceUpdateTrigger] = useState(0);
+
+  // Listen for admin price changes
+  useEffect(() => {
+    const handleAdminPriceUpdate = () => {
+      setPriceUpdateTrigger(prev => prev + 1);
+    };
+    
+    window.addEventListener('adminPriceUpdate', handleAdminPriceUpdate);
+    window.addEventListener('storage', handleAdminPriceUpdate);
+
+    return () => {
+      window.removeEventListener('adminPriceUpdate', handleAdminPriceUpdate);
+      window.removeEventListener('storage', handleAdminPriceUpdate);
+    };
+  }, []);
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = (profileToUse = null) => {
@@ -37,23 +54,81 @@ export default function Overview({ balance, investments, prices, transactions = 
     return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
   }, []);
 
-  const totalInvested = investments.reduce((s, i) => s + (i.amount || 0), 0);
+  const totalInvested = investments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
 
   // compute holdings grouped by asset key (coin or asset name)
   const holdingsMap = {};
   investments.forEach((i) => {
-    const key = i.coin ? i.coin : (i.asset || i.name || 'Other');
-    holdingsMap[key] = holdingsMap[key] || { key, invested: 0, quantity: 0, latestPrice: 0, name: i.name || key, coin: i.coin };
-    holdingsMap[key].invested += (i.amount || 0);
-    if (i.quantity) holdingsMap[key].quantity += i.quantity;
-    else if (i.priceAtPurchase && i.amount) holdingsMap[key].quantity += (i.amount / i.priceAtPurchase);
+    // Handle different data structures (backend demo vs legacy)
+    const key = i.asset_name || i.coin || i.asset || i.name || 'Other';
+    const investmentName = i.asset_name || i.name || key;
+    const isCrypto = i.investment_type === 'crypto' || i.coin;
+    
+    if (!holdingsMap[key]) {
+      holdingsMap[key] = { 
+        key, 
+        invested: 0, 
+        quantity: isCrypto ? 0 : null, // Only crypto has quantity
+        latestPrice: 0, 
+        name: investmentName, 
+        coin: isCrypto ? key : null 
+      };
+    }
+    
+    // Ensure proper number conversion
+    const amount = parseFloat(i.amount) || 0;
+    const quantity = parseFloat(i.quantity) || 0;
+    const priceAtPurchase = parseFloat(i.priceAtPurchase || i.price_at_purchase) || 0;
+    
+    holdingsMap[key].invested += amount;
+    
+    // Only add quantity for crypto investments
+    if (isCrypto && quantity > 0) {
+      if (holdingsMap[key].quantity === null) {
+        holdingsMap[key].quantity = 0; // Convert null to 0 for crypto
+      }
+      holdingsMap[key].quantity += quantity;
+    } else if (isCrypto && priceAtPurchase > 0 && amount > 0) {
+      // Fallback: calculate quantity from amount and price at purchase
+      if (holdingsMap[key].quantity === null) {
+        holdingsMap[key].quantity = 0; // Convert null to 0 for crypto
+      }
+      holdingsMap[key].quantity += (amount / priceAtPurchase);
+    } else if (isCrypto && amount > 0 && !quantity && !priceAtPurchase) {
+      // Last resort: try to get current price to estimate quantity
+      // This is for legacy data that might not have quantity or purchase price
+      const currentPrice = prices && prices[key] ? parseFloat(prices[key].price) : 0;
+      if (currentPrice > 0) {
+        if (holdingsMap[key].quantity === null) {
+          holdingsMap[key].quantity = 0;
+        }
+        // Use current price as estimate (not ideal but better than nothing)
+        holdingsMap[key].quantity += (amount / currentPrice);
+      }
+    }
   });
 
   // attach latest prices and compute current values
   const holdings = Object.values(holdingsMap).map((h) => {
-    const latest = h.coin && prices && prices[h.coin] ? prices[h.coin].price : undefined;
-    const currentValue = h.quantity && latest ? h.quantity * latest : h.invested;
-    const roi = h.invested ? ((currentValue - h.invested) / h.invested) * 100 : 0;
+    let latest = 0;
+    
+    // Get current price - use admin price for EXACOIN and OPTCOIN if available
+    if (h.coin === 'EXACOIN' || h.coin === 'OPTCOIN') {
+      const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
+      if (adminPrices[h.coin] && adminPrices[h.coin].price) {
+        latest = parseFloat(adminPrices[h.coin].price) || 0;
+      } else {
+        // Fallback prices for admin-controlled coins
+        if (h.coin === 'EXACOIN') latest = 62.00;
+        if (h.coin === 'OPTCOIN') latest = 85.30;
+      }
+    } else {
+      latest = h.coin && prices && prices[h.coin] ? parseFloat(prices[h.coin].price) || 0 : 0;
+    }
+    
+    // For crypto: use quantity * latest price, for others: use invested amount
+    const currentValue = (h.coin && h.quantity !== null && latest > 0) ? h.quantity * latest : h.invested;
+    const roi = h.invested > 0 ? ((currentValue - h.invested) / h.invested) * 100 : 0;
     return { ...h, latest, currentValue, roi };
   }).sort((a, b) => b.currentValue - a.currentValue);
 
@@ -74,9 +149,10 @@ export default function Overview({ balance, investments, prices, transactions = 
     .slice()
     .reverse()
     .reduce((arr, inv) => {
-      const d = new Date(inv.date).toLocaleDateString();
+      const d = formatDate(inv.created_at || inv.date);
       const last = arr.length ? arr[arr.length - 1].value : 0;
-      arr.push({ date: d, value: last + (inv.amount || 0) });
+      const amount = parseFloat(inv.amount) || 0;
+      arr.push({ date: d, value: last + amount });
       return arr;
     }, []);
 
@@ -208,7 +284,7 @@ export default function Overview({ balance, investments, prices, transactions = 
                 <li key={i} className="flex justify-between items-center bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 p-4 rounded-lg border border-gray-600 transition-all transform hover:scale-[1.02]">
                   <div>
                     <div className="font-semibold text-white">{t.asset || t.coin || t.type}</div>
-                    <div className="text-xs text-gray-400">{new Date(t.date).toLocaleDateString()}</div>
+                    <div className="text-xs text-gray-400">{formatDate(t.created_at || t.date)}</div>
                   </div>
                   <div className={`text-sm font-bold ${t.type === 'Withdraw' ? 'text-amber-400' : t.type === 'Deposit' ? 'text-green-400' : 'text-blue-400'}`}>${(t.amount || 0).toLocaleString()}</div>
                 </li>
@@ -232,7 +308,7 @@ export default function Overview({ balance, investments, prices, transactions = 
                 <li key={i} className="flex justify-between items-center bg-white/10 backdrop-blur-sm hover:bg-white/20 p-3 rounded-lg border border-white/20 transition-all">
                   <div>
                     <div className="font-semibold text-white">{t.type}</div>
-                    <div className="text-xs text-indigo-200">{new Date(t.date).toLocaleDateString()}</div>
+                    <div className="text-xs text-indigo-200">{formatDate(t.created_at || t.date)}</div>
                   </div>
                   <div className={`font-bold ${t.type === 'Withdraw' ? 'text-amber-300' : 'text-green-300'}`}>${(t.amount || 0).toLocaleString()}</div>
                 </li>
@@ -291,7 +367,9 @@ export default function Overview({ balance, investments, prices, transactions = 
                     {holdings.map((h, i) => (
                       <tr key={i} className="border-b border-white/10 hover:bg-white/10 transition-colors">
                         <td className="p-3 text-white font-medium">{h.name} {h.coin ? <span className="text-xs text-cyan-200">({h.coin})</span> : null}</td>
-                        <td className="p-3 text-cyan-100">{h.quantity ? h.quantity.toFixed(4) : '-'}</td>
+                        <td className="p-3 text-cyan-100">
+                          {(h.quantity !== null && h.quantity !== undefined && typeof h.quantity === 'number') ? h.quantity.toFixed(4) : '-'}
+                        </td>
                         <td className="p-3 text-white font-bold">${Math.round(h.currentValue).toLocaleString()}</td>
                         <td className="p-3 text-cyan-200">${Math.round(h.invested).toLocaleString()}</td>
                         <td className={`p-3 font-bold ${h.roi >= 0 ? 'text-green-300' : 'text-red-300'}`}>{h.roi ? `${h.roi.toFixed(2)}%` : '-'}</td>

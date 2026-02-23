@@ -134,6 +134,28 @@ export const userAuthAPI = {
   getBalance: () => userApi.get('/auth/balance/'),
   getReferrals: () => userApi.get('/auth/referrals/'),
   getReferralStats: () => userApi.get('/auth/referral-stats/'),
+  getDashboardStats: () => userApi.get('/auth/dashboard-stats/'),
+  generateReferralCode: () => userApi.post('/auth/generate-referral-code/'),
+  
+  // Crypto Operations
+  buyCrypto: (data) => userApi.post('/crypto/buy/', data),
+  sellCrypto: (data) => userApi.post('/crypto/sell/', data),
+  getCryptoPrices: () => userApi.get('/investments/crypto/prices/'),
+  getCryptoPortfolio: () => userApi.get('/crypto/portfolio/'),
+  
+  // Transactions
+  getTransactions: () => userApi.get('/transactions/'),
+  createDeposit: (data) => userApi.post('/transactions/deposit/', data),
+  createWithdrawal: (data) => userApi.post('/transactions/withdraw/', data),
+  deposit: (amount) => userApi.post('/transactions/deposit/', { amount }),
+  withdraw: (amount) => userApi.post('/transactions/withdraw/', { amount }),
+  createInvestment: (data) => userApi.post('/investments/', data),
+  
+  // Notifications
+  getNotifications: () => userApi.get('/notifications/'),
+  markNotificationRead: (id) => userApi.post(`/notifications/${id}/read/`),
+  markAllRead: () => userApi.post('/notifications/mark-all-read/'),
+  deleteNotification: (id) => userApi.delete(`/notifications/${id}/delete/`),
 };
 
 // Admin Auth API
@@ -147,6 +169,34 @@ export const adminAuthAPI = {
   verifyUser: (userId, action = 'verify') => adminApi.post(`/auth/admin/users/${userId}/verify/`, { action }),
   suspendUser: (userId, action = 'suspend') => adminApi.post(`/auth/admin/users/${userId}/suspend/`, { action }),
   resetUserPassword: (userId, password) => adminApi.post(`/auth/admin/users/${userId}/reset-password/`, { password }),
+  
+  // Notifications
+  getNotifications: () => adminApi.get('/notifications/admin/notifications/'),
+  sendNotification: (data) => adminApi.post('/notifications/admin/send/', data),
+  deleteNotification: (id) => adminApi.delete(`/notifications/admin/notifications/${id}/`),
+  
+  // Dashboard
+  getDashboardStats: () => adminApi.get('/auth/admin/dashboard/'),
+  
+  // Deposits
+  getDeposits: () => adminApi.get('/admin/deposits/'),
+  approveDeposit: (id) => adminApi.post(`/admin/deposits/${id}/approve/`),
+  rejectDeposit: (id, reason) => adminApi.post(`/admin/deposits/${id}/reject/`, { reason }),
+  
+  // Withdrawals
+  getWithdrawals: () => adminApi.get('/admin/withdrawals/'),
+  approveWithdrawal: (id) => adminApi.post(`/admin/withdrawals/${id}/approve/`),
+  rejectWithdrawal: (id, reason) => adminApi.post(`/admin/withdrawals/${id}/reject/`, { reason }),
+  
+  // Investments
+  getInvestments: () => adminApi.get('/admin/investments/'),
+  
+  // Transactions
+  getTransactions: () => adminApi.get('/admin/transactions/'),
+  
+  // Crypto Prices
+  getCryptoPrices: () => adminApi.get('/investments/admin/crypto-prices/'),
+  updateCryptoPrice: (data) => adminApi.post('/investments/admin/crypto-prices/update/', data),
 };
 
 // Investments API (user)

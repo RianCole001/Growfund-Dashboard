@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, DollarSign, Check, Shield, Lock, Plus, Trash2, X, Smartphone, Building, Bitcoin } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+import toast from 'react-hot-toast';
 
 export default function Deposits({ onDeposit }) {
+  const { settings } = useSettings();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('Card');
   const [step, setStep] = useState(1); // 1: Amount & Method, 2: Payment Details, 3: Confirmation
@@ -115,8 +118,21 @@ export default function Deposits({ onDeposit }) {
   };
 
   const handleSubmit = () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount');
+    const amt = parseFloat(amount);
+    
+    if (!amount || amt <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    // Validate against platform settings
+    if (amt < settings.minDeposit) {
+      toast.error(`Minimum deposit amount is $${settings.minDeposit}`);
+      return;
+    }
+
+    if (amt > settings.maxDeposit) {
+      toast.error(`Maximum deposit amount is $${settings.maxDeposit}`);
       return;
     }
 
@@ -128,7 +144,7 @@ export default function Deposits({ onDeposit }) {
     if (step === 2) {
       const error = validateStep2();
       if (error) {
-        alert(error);
+        toast.error(error);
         return;
       }
       setStep(3);
@@ -136,7 +152,6 @@ export default function Deposits({ onDeposit }) {
     }
 
     // Final submission
-    const amt = parseFloat(amount);
     const reference = `DEP-${Date.now()}`;
     
     const details = { reference, method };

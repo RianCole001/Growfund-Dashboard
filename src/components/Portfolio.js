@@ -1,59 +1,142 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, Target, Award, Eye, Wallet, BarChart3, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Target, Award, Eye, Wallet, BarChart3, Minus, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useDemo } from '../demo/DemoContext';
+import { safeParseDate, formatDate } from '../utils/dateUtils';
 
 export default function Portfolio({ investments = [], balance = 0, prices = {}, loading = false, onSellCrypto }) {
-  const { isDemoMode, demoSellCrypto } = useDemo();
+  const isDemoMode = !!localStorage.getItem('demo_access_token');
   const [viewMode, setViewMode] = useState('overview'); // 'overview', 'crypto', 'plans'
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [selectedHolding, setSelectedHolding] = useState(null);
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
+  const [priceUpdateTrigger, setPriceUpdateTrigger] = useState(0);
+
+  // Listen for admin price changes
+  useEffect(() => {
+    const handleAdminPriceUpdate = () => {
+      setPriceUpdateTrigger(prev => prev + 1);
+    };
+    
+    window.addEventListener('adminPriceUpdate', handleAdminPriceUpdate);
+    window.addEventListener('storage', handleAdminPriceUpdate);
+
+    return () => {
+      window.removeEventListener('adminPriceUpdate', handleAdminPriceUpdate);
+      window.removeEventListener('storage', handleAdminPriceUpdate);
+    };
+  }, []);
+
+  // Get admin-controlled sell price
+  const getSellPrice = useCallback((coin) => {
+    const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
+    if (adminPrices[coin] && adminPrices[coin].sellPrice) {
+      return adminPrices[coin].sellPrice;
+    }
+    // Fallback to 97% of current price if admin hasn't set sell price
+    return (prices[coin]?.price || 0) * 0.97;
+  }, [prices]);
+
+  // Get admin-controlled buy/current price for EXACOIN and OPTCOIN
+  const getCurrentPrice = useCallback((coin) => {
+    if (coin === 'EXACOIN' || coin === 'OPTCOIN') {
+      const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
+      if (adminPrices[coin] && adminPrices[coin].price) {
+        return parseFloat(adminPrices[coin].price) || 0;
+      }
+      // Fallback prices for admin-controlled coins
+      if (coin === 'EXACOIN') return 62.00;
+      if (coin === 'OPTCOIN') return 85.30;
+    }
+    return parseFloat(prices[coin]?.price) || 0;
+  }, [prices]);
 
   // Calculate portfolio data
   const portfolioData = useMemo(() => {
     // Group investments by type
-    const cryptoInvestments = investments.filter(inv => inv.coin);
-    const capitalPlans = investments.filter(inv => inv.plan_type && (inv.plan_type === 'basic' || inv.plan_type === 'standard' || inv.plan_type === 'advance'));
-    const realEstateInvestments = investments.filter(inv => inv.asset === 'Real Estate' || inv.plan === 'Real Estate');
+    const cryptoInvestments = investments.filter(inv => 
+      inv.investment_type === 'crypto' || inv.coin
+    );
+    const capitalPlans = investments.filter(inv => 
+      inv.investment_type === 'capital_plan' || 
+      (inv.plan_type && (inv.plan_type === 'basic' || inv.plan_type === 'standard' || inv.plan_type === 'advance'))
+    );
+    const realEstateInvestments = investments.filter(inv => 
+      inv.investment_type === 'real_estate' || 
+      inv.asset === 'Real Estate' || 
+      inv.plan === 'Real Estate'
+    );
 
     // Calculate crypto holdings
     const cryptoHoldings = {};
     cryptoInvestments.forEach(inv => {
-      const coin = inv.coin;
+      const coin = inv.asset_name || inv.coin;
+      
       if (!cryptoHoldings[coin]) {
         cryptoHoldings[coin] = {
           coin,
           totalInvested: 0,
-          quantity: 0,
-          transactions: []
+          quantity: 0, // Initialize to 0 for crypto
+          transactions: [],
+          totalPurchaseValue: 0, // Track total value at purchase prices
+          averagePurchasePrice: 0, // Track average purchase price
+          investmentIds: [] // Track investment IDs for selling
         };
       }
-      cryptoHoldings[coin].totalInvested += inv.amount || 0;
-      cryptoHoldings[coin].quantity += inv.quantity || 0;
+      // Ensure amounts are properly converted to numbers
+      const amount = parseFloat(inv.amount) || 0;
+      const quantity = parseFloat(inv.quantity) || 0;
+      const purchasePrice = parseFloat(inv.priceAtPurchase || inv.price_at_purchase) || 0;
+      
+      cryptoHoldings[coin].totalInvested += amount;
+      cryptoHoldings[coin].investmentIds.push(inv.id); // Store investment ID
+      
+      // Add quantity if it exists and is a valid number
+      if (quantity > 0) {
+        cryptoHoldings[coin].quantity += quantity;
+        // Track purchase value for average price calculation
+        if (purchasePrice > 0) {
+          cryptoHoldings[coin].totalPurchaseValue += (quantity * purchasePrice);
+        } else {
+          // If no purchase price, use the invested amount
+          cryptoHoldings[coin].totalPurchaseValue += amount;
+        }
+      }
       cryptoHoldings[coin].transactions.push(inv);
     });
 
     // Add current values and P&L
     Object.keys(cryptoHoldings).forEach(coin => {
       const holding = cryptoHoldings[coin];
-      const currentPrice = prices[coin]?.price || 0;
+      const currentPrice = getCurrentPrice(coin);
+      const quantity = parseFloat(holding.quantity) || 0;
+      const totalInvested = parseFloat(holding.totalInvested) || 0;
+      
+      // Calculate average purchase price
+      if (quantity > 0 && holding.totalPurchaseValue > 0) {
+        holding.averagePurchasePrice = holding.totalPurchaseValue / quantity;
+      } else if (quantity > 0 && totalInvested > 0) {
+        // Fallback: use total invested / quantity
+        holding.averagePurchasePrice = totalInvested / quantity;
+      } else {
+        holding.averagePurchasePrice = 0;
+      }
+      
       holding.currentPrice = currentPrice;
-      holding.currentValue = holding.quantity * currentPrice;
-      holding.profitLoss = holding.currentValue - holding.totalInvested;
-      holding.profitLossPercent = holding.totalInvested > 0 ? ((holding.profitLoss / holding.totalInvested) * 100) : 0;
+      holding.currentValue = quantity * currentPrice;
+      holding.profitLoss = holding.currentValue - totalInvested;
+      holding.profitLossPercent = totalInvested > 0 ? ((holding.profitLoss / totalInvested) * 100) : 0;
     });
 
     // Calculate totals
-    const totalCryptoInvested = Object.values(cryptoHoldings).reduce((sum, h) => sum + h.totalInvested, 0);
-    const totalCryptoValue = Object.values(cryptoHoldings).reduce((sum, h) => sum + h.currentValue, 0);
-    const totalCapitalPlans = capitalPlans.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-    const totalRealEstate = realEstateInvestments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    const totalCryptoInvested = Object.values(cryptoHoldings).reduce((sum, h) => sum + (parseFloat(h.totalInvested) || 0), 0);
+    const totalCryptoValue = Object.values(cryptoHoldings).reduce((sum, h) => sum + (parseFloat(h.currentValue) || 0), 0);
+    const totalCapitalPlans = capitalPlans.reduce((sum, inv) => sum + (parseFloat(inv.amount) || 0), 0);
+    const totalRealEstate = realEstateInvestments.reduce((sum, inv) => sum + (parseFloat(inv.amount) || 0), 0);
     
     const totalInvested = totalCryptoInvested + totalCapitalPlans + totalRealEstate;
-    const totalPortfolioValue = totalCryptoValue + totalCapitalPlans + totalRealEstate + balance;
+    const totalPortfolioValue = totalCryptoValue + totalCapitalPlans + totalRealEstate + (parseFloat(balance) || 0);
     const totalProfitLoss = totalCryptoValue - totalCryptoInvested;
 
     return {
@@ -71,17 +154,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
         balance
       }
     };
-  }, [investments, balance, prices]);
-
-  // Get admin-controlled sell price
-  const getSellPrice = (coin) => {
-    const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
-    if (adminPrices[coin] && adminPrices[coin].sellPrice) {
-      return adminPrices[coin].sellPrice;
-    }
-    // Fallback to 97% of current price if admin hasn't set sell price
-    return (prices[coin]?.price || 0) * 0.97;
-  };
+  }, [investments, balance, prices, getCurrentPrice, priceUpdateTrigger]);
 
   const openSellModal = (holding) => {
     setSelectedHolding(holding);
@@ -108,7 +181,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       return;
     }
 
-    if (sellQuantity > selectedHolding.quantity) {
+    if (sellQuantity > (selectedHolding.quantity || 0)) {
       toast.error('Cannot sell more than you own');
       return;
     }
@@ -120,19 +193,20 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
 
       if (isDemoMode) {
         // Use demo sell function
-        await demoSellCrypto({
-          investmentId: selectedHolding.transactions[0]?.id, // Use first transaction ID
+        await onSellCrypto({
           coin: selectedHolding.coin,
-          amount: sellQuantity,
-          price: sellPrice
+          quantity: sellQuantity,
+          price: sellPrice,
+          amount: sellValue
         });
         toast.success(`Successfully sold ${sellQuantity} ${selectedHolding.coin} for $${sellValue.toFixed(2)}`);
       } else {
         // Use real API
         if (onSellCrypto) {
           await onSellCrypto({
+            investment_id: selectedHolding.investmentIds[0], // Use first investment ID (FIFO)
             coin: selectedHolding.coin,
-            amount: sellQuantity,
+            quantity: sellQuantity,
             price: sellPrice
           });
           toast.success(`Successfully sold ${sellQuantity} ${selectedHolding.coin} for $${sellValue.toFixed(2)}`);
@@ -156,15 +230,132 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
     { name: 'Cash', value: portfolioData.totals.balance, color: '#065F46' }
   ].filter(item => item.value > 0);
 
+  // Calculate expected returns projection
+  const expectedReturnsData = useMemo(() => {
+    const projectionMonths = 12; // Project 12 months ahead
+    const monthlyData = [];
+    
+    // Current date as starting point
+    const startDate = new Date();
+    
+    for (let month = 0; month <= projectionMonths; month++) {
+      const projectionDate = new Date(startDate);
+      projectionDate.setMonth(startDate.getMonth() + month);
+      
+      let totalProjectedValue = portfolioData.totals.balance; // Start with cash balance
+      
+      // Calculate crypto projections (assume 5% monthly growth average)
+      const cryptoGrowthRate = 0.05;
+      const projectedCryptoValue = portfolioData.totals.totalCryptoValue * Math.pow(1 + cryptoGrowthRate, month);
+      totalProjectedValue += projectedCryptoValue;
+      
+      // Calculate capital plan projections
+      portfolioData.capitalPlans.forEach(plan => {
+        const planAmount = parseFloat(plan.amount) || 0;
+        let monthlyRate = 0.20; // Default 20%
+        
+        // Determine rate based on plan type
+        if (plan.plan_type === 'standard' || plan.plan === 'Standard') {
+          monthlyRate = 0.30;
+        } else if (plan.plan_type === 'advance' || plan.plan === 'Advance') {
+          monthlyRate = plan.rate ? (parseFloat(plan.rate) / 100) : 0.40; // Use stored rate or default 40%
+        }
+        
+        // Calculate months since investment
+        const investmentDate = safeParseDate(plan.created_at || plan.date);
+        const monthsSinceInvestment = Math.max(0, 
+          (projectionDate.getTime() - investmentDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+        );
+        
+        const projectedPlanValue = planAmount * Math.pow(1 + monthlyRate, monthsSinceInvestment);
+        totalProjectedValue += projectedPlanValue;
+      });
+      
+      // Calculate real estate projections
+      portfolioData.realEstateInvestments.forEach(investment => {
+        const investmentAmount = parseFloat(investment.amount) || 0;
+        let monthlyRate = 0.20; // Default 20%
+        
+        // Determine rate based on property type
+        if (investment.name && investment.name.includes('Premium')) {
+          monthlyRate = 0.30;
+        } else if (investment.name && investment.name.includes('Luxury')) {
+          monthlyRate = 0.50;
+        }
+        
+        // Calculate months since investment
+        const investmentDate = safeParseDate(investment.created_at || investment.date);
+        const monthsSinceInvestment = Math.max(0,
+          (projectionDate.getTime() - investmentDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+        );
+        
+        const projectedRealEstateValue = investmentAmount * Math.pow(1 + monthlyRate, monthsSinceInvestment);
+        totalProjectedValue += projectedRealEstateValue;
+      });
+      
+      monthlyData.push({
+        month: month,
+        date: projectionDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        totalValue: Math.round(totalProjectedValue),
+        cryptoValue: Math.round(projectedCryptoValue),
+        capitalValue: Math.round(portfolioData.capitalPlans.reduce((sum, plan) => {
+          const planAmount = parseFloat(plan.amount) || 0;
+          let monthlyRate = 0.20;
+          if (plan.plan_type === 'standard' || plan.plan === 'Standard') monthlyRate = 0.30;
+          else if (plan.plan_type === 'advance' || plan.plan === 'Advance') {
+            monthlyRate = plan.rate ? (parseFloat(plan.rate) / 100) : 0.40;
+          }
+          const investmentDate = safeParseDate(plan.created_at || plan.date);
+          const monthsSinceInvestment = Math.max(0,
+            (projectionDate.getTime() - investmentDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+          );
+          return sum + (planAmount * Math.pow(1 + monthlyRate, monthsSinceInvestment));
+        }, 0)),
+        realEstateValue: Math.round(portfolioData.realEstateInvestments.reduce((sum, inv) => {
+          const investmentAmount = parseFloat(inv.amount) || 0;
+          let monthlyRate = 0.20;
+          if (inv.name && inv.name.includes('Premium')) monthlyRate = 0.30;
+          else if (inv.name && inv.name.includes('Luxury')) monthlyRate = 0.50;
+          const investmentDate = safeParseDate(inv.created_at || inv.date);
+          const monthsSinceInvestment = Math.max(0,
+            (projectionDate.getTime() - investmentDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+          );
+          return sum + (investmentAmount * Math.pow(1 + monthlyRate, monthsSinceInvestment));
+        }, 0))
+      });
+    }
+    
+    return monthlyData;
+  }, [portfolioData, investments]);
+
   // Portfolio growth chart data
   const growthData = useMemo(() => {
-    const sortedInvestments = [...investments].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sortedInvestments = [...investments].sort((a, b) => {
+      try {
+        const dateA = safeParseDate(a.created_at || a.date);
+        const dateB = safeParseDate(b.created_at || b.date);
+        return dateA - dateB;
+      } catch (error) {
+        console.warn('Date sorting error:', error);
+        return 0;
+      }
+    });
     let runningTotal = 0;
     
     return sortedInvestments.map(inv => {
       runningTotal += inv.amount || 0;
+      let formattedDate = 'N/A';
+      try {
+        const dateValue = inv.created_at || inv.date;
+        if (dateValue) {
+          formattedDate = formatDate(dateValue);
+        }
+      } catch (error) {
+        console.warn('Date formatting error in growth chart:', inv, error);
+      }
+      
       return {
-        date: new Date(inv.date).toLocaleDateString(),
+        date: formattedDate,
         value: runningTotal,
         investment: inv.amount || 0
       };
@@ -202,7 +393,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
           <div className="bg-white/10 backdrop-blur-sm px-5 py-3 rounded-lg border border-white/20">
             <div className="text-xs text-green-100 mb-1">Total Portfolio Value</div>
             <div className="text-xl sm:text-2xl font-bold text-white">
-              ${portfolioData.totals.totalPortfolioValue.toLocaleString()}
+              ${Math.round(portfolioData.totals.totalPortfolioValue).toLocaleString()}
             </div>
           </div>
         </div>
@@ -216,7 +407,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
             <DollarSign className="w-5 h-5 text-green-500" />
           </div>
           <div className="text-2xl font-bold text-gray-900">
-            ${portfolioData.totals.totalInvested.toLocaleString()}
+            ${Math.round(portfolioData.totals.totalInvested).toLocaleString()}
           </div>
           <div className="text-xs text-gray-500 mt-1">
             {investments.length} positions
@@ -229,7 +420,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
             <Target className="w-5 h-5 text-green-500" />
           </div>
           <div className="text-2xl font-bold text-gray-900">
-            ${(portfolioData.totals.totalCryptoValue + portfolioData.totals.totalCapitalPlans + portfolioData.totals.totalRealEstate).toLocaleString()}
+            ${Math.round(portfolioData.totals.totalCryptoValue + portfolioData.totals.totalCapitalPlans + portfolioData.totals.totalRealEstate).toLocaleString()}
           </div>
           <div className="text-xs text-gray-500 mt-1">
             Excluding cash balance
@@ -245,7 +436,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
             }
           </div>
           <div className={`text-2xl font-bold ${portfolioData.totals.totalProfitLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {portfolioData.totals.totalProfitLoss >= 0 ? '+' : ''}${portfolioData.totals.totalProfitLoss.toLocaleString()}
+            {portfolioData.totals.totalProfitLoss >= 0 ? '+' : ''}${Math.round(portfolioData.totals.totalProfitLoss).toLocaleString()}
           </div>
           <div className={`text-xs mt-1 ${portfolioData.totals.totalProfitLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
             {portfolioData.totals.totalInvested > 0 ? 
@@ -261,7 +452,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
             <Award className="w-5 h-5 text-yellow-500" />
           </div>
           <div className="text-2xl font-bold text-gray-900">
-            ${portfolioData.totals.balance.toLocaleString()}
+            ${Math.round(portfolioData.totals.balance).toLocaleString()}
           </div>
           <div className="text-xs text-gray-500 mt-1">
             Ready to invest
@@ -275,7 +466,8 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
           {[
             { key: 'overview', label: 'Overview', icon: BarChart3 },
             { key: 'crypto', label: 'Crypto Holdings', icon: TrendingUp },
-            { key: 'plans', label: 'Investment Plans', icon: Target }
+            { key: 'plans', label: 'Investment Plans', icon: Target },
+            { key: 'projections', label: 'Expected Returns', icon: Award }
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -387,6 +579,326 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
               </div>
             )}
           </div>
+
+          {/* Expected Returns Projection */}
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+              <Target className="w-5 h-5 mr-2 text-blue-500" />
+              Expected Returns (12-Month Projection)
+            </h3>
+            <p className="text-sm text-gray-400 mb-4">
+              Projected portfolio growth based on historical returns and investment types
+            </p>
+            {expectedReturnsData.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={expectedReturnsData}>
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.6}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorCapital" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorRealEstate" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorCrypto" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="date" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1F2937', 
+                        border: '1px solid #3B82F6', 
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value, name) => {
+                        const labels = {
+                          totalValue: 'Total Portfolio',
+                          capitalValue: 'Capital Plans',
+                          realEstateValue: 'Real Estate',
+                          cryptoValue: 'Crypto Holdings'
+                        };
+                        return [`$${value.toLocaleString()}`, labels[name] || name];
+                      }}
+                    />
+                    
+                    {/* Stack the areas */}
+                    <Area 
+                      type="monotone" 
+                      dataKey="capitalValue" 
+                      stackId="1"
+                      stroke="#10B981" 
+                      strokeWidth={1}
+                      fill="url(#colorCapital)" 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="realEstateValue" 
+                      stackId="1"
+                      stroke="#F59E0B" 
+                      strokeWidth={1}
+                      fill="url(#colorRealEstate)" 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="cryptoValue" 
+                      stackId="1"
+                      stroke="#8B5CF6" 
+                      strokeWidth={1}
+                      fill="url(#colorCrypto)" 
+                    />
+                    
+                    {/* Total value line on top */}
+                    <Area 
+                      type="monotone" 
+                      dataKey="totalValue" 
+                      stroke="#3B82F6" 
+                      strokeWidth={3}
+                      fill="none"
+                      strokeDasharray="5 5"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-400">
+                <div className="text-center">
+                  <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No investments to project</p>
+                  <p className="text-sm">Start investing to see expected returns</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Legend */}
+            <div className="mt-4 flex flex-wrap gap-4 justify-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                <span className="text-sm text-gray-300">Capital Plans</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-amber-500 rounded mr-2"></div>
+                <span className="text-sm text-gray-300">Real Estate</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
+                <span className="text-sm text-gray-300">Crypto</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-1 bg-blue-500 rounded mr-2" style={{borderStyle: 'dashed'}}></div>
+                <span className="text-sm text-gray-300">Total Portfolio</span>
+              </div>
+            </div>
+            
+            {/* Projection Summary */}
+            {expectedReturnsData.length > 0 && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-400">Current Portfolio</div>
+                  <div className="text-xl font-bold text-white">
+                    ${portfolioData.totals.totalPortfolioValue.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-400">12-Month Projection</div>
+                  <div className="text-xl font-bold text-blue-400">
+                    ${expectedReturnsData[expectedReturnsData.length - 1]?.totalValue.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-400">Expected Gain</div>
+                  <div className="text-xl font-bold text-green-400">
+                    +${((expectedReturnsData[expectedReturnsData.length - 1]?.totalValue || 0) - portfolioData.totals.totalPortfolioValue).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'projections' && (
+        <div className="space-y-6">
+          {/* Expected Returns Projection */}
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+              <Target className="w-5 h-5 mr-2 text-blue-500" />
+              Expected Returns (12-Month Projection)
+            </h3>
+            <p className="text-sm text-gray-400 mb-6">
+              Projected portfolio growth based on historical returns and investment types. This projection assumes:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <div className="text-sm text-gray-400 mb-1">Crypto Growth</div>
+                <div className="text-lg font-bold text-purple-400">5% Monthly</div>
+                <div className="text-xs text-gray-500">Average market performance</div>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <div className="text-sm text-gray-400 mb-1">Capital Plans</div>
+                <div className="text-lg font-bold text-green-400">20-60% Monthly</div>
+                <div className="text-xs text-gray-500">Based on plan type</div>
+              </div>
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <div className="text-sm text-gray-400 mb-1">Real Estate</div>
+                <div className="text-lg font-bold text-amber-400">20-50% Monthly</div>
+                <div className="text-xs text-gray-500">Based on property type</div>
+              </div>
+            </div>
+            
+            {expectedReturnsData.length > 0 ? (
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={expectedReturnsData}>
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.6}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorCapital" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorRealEstate" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorCrypto" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="date" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1F2937', 
+                        border: '1px solid #3B82F6', 
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value, name) => {
+                        const labels = {
+                          totalValue: 'Total Portfolio',
+                          capitalValue: 'Capital Plans',
+                          realEstateValue: 'Real Estate',
+                          cryptoValue: 'Crypto Holdings'
+                        };
+                        return [`$${value.toLocaleString()}`, labels[name] || name];
+                      }}
+                    />
+                    
+                    {/* Stack the areas */}
+                    <Area 
+                      type="monotone" 
+                      dataKey="capitalValue" 
+                      stackId="1"
+                      stroke="#10B981" 
+                      strokeWidth={1}
+                      fill="url(#colorCapital)" 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="realEstateValue" 
+                      stackId="1"
+                      stroke="#F59E0B" 
+                      strokeWidth={1}
+                      fill="url(#colorRealEstate)" 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="cryptoValue" 
+                      stackId="1"
+                      stroke="#8B5CF6" 
+                      strokeWidth={1}
+                      fill="url(#colorCrypto)" 
+                    />
+                    
+                    {/* Total value line on top */}
+                    <Area 
+                      type="monotone" 
+                      dataKey="totalValue" 
+                      stroke="#3B82F6" 
+                      strokeWidth={3}
+                      fill="none"
+                      strokeDasharray="5 5"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-400">
+                <div className="text-center">
+                  <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No investments to project</p>
+                  <p className="text-sm">Start investing to see expected returns</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Legend */}
+            <div className="mt-6 flex flex-wrap gap-6 justify-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                <span className="text-sm text-gray-300">Capital Plans</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-amber-500 rounded mr-2"></div>
+                <span className="text-sm text-gray-300">Real Estate</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
+                <span className="text-sm text-gray-300">Crypto</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-1 bg-blue-500 rounded mr-2" style={{borderStyle: 'dashed'}}></div>
+                <span className="text-sm text-gray-300">Total Portfolio</span>
+              </div>
+            </div>
+            
+            {/* Projection Summary */}
+            {expectedReturnsData.length > 0 && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-400">Current Portfolio</div>
+                  <div className="text-xl font-bold text-white">
+                    ${portfolioData.totals.totalPortfolioValue.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-400">12-Month Projection</div>
+                  <div className="text-xl font-bold text-blue-400">
+                    ${expectedReturnsData[expectedReturnsData.length - 1]?.totalValue.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-400">Expected Gain</div>
+                  <div className="text-xl font-bold text-green-400">
+                    +${((expectedReturnsData[expectedReturnsData.length - 1]?.totalValue || 0) - portfolioData.totals.totalPortfolioValue).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Disclaimer */}
+            <div className="mt-6 bg-yellow-900/20 border border-yellow-600/30 p-4 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <Info className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-yellow-200">
+                  <strong className="text-yellow-100">Important Disclaimer:</strong> These projections are estimates based on historical performance and assumed growth rates. Actual returns may vary significantly due to market conditions, economic factors, and investment risks. Past performance does not guarantee future results.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -415,8 +927,8 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Asset</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Holdings</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Buy Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Sell Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Avg Buy Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Current Price</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Current Value</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Invested</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">P&L</th>
@@ -432,26 +944,33 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-white font-mono">{holding.quantity.toFixed(6)}</div>
+                        <div className="text-sm text-white font-mono">
+                          {(typeof holding.quantity === 'number') 
+                            ? holding.quantity.toFixed(6) 
+                            : 'N/A'
+                          }
+                        </div>
                         <div className="text-xs text-gray-400">{holding.transactions.length} transactions</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-white">${holding.currentPrice.toLocaleString()}</div>
-                        <div className="text-xs text-gray-400">Market price</div>
+                        <div className="text-sm font-medium text-white">${holding.averagePurchasePrice.toFixed(2)}</div>
+                        <div className="text-xs text-gray-400">Average purchase</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-white">${getSellPrice(holding.coin).toFixed(2)}</div>
-                        <div className="text-xs text-gray-400">Sell price</div>
+                        <div className="text-sm font-medium text-white">${getCurrentPrice(holding.coin).toFixed(2)}</div>
+                        <div className="text-xs text-gray-400">
+                          {holding.coin === 'EXACOIN' || holding.coin === 'OPTCOIN' ? 'Admin controlled' : 'Market price'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-white">${holding.currentValue.toLocaleString()}</div>
+                        <div className="text-sm font-bold text-white">${Math.round(holding.currentValue).toLocaleString()}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-300">${holding.totalInvested.toLocaleString()}</div>
+                        <div className="text-sm text-gray-300">${Math.round(holding.totalInvested).toLocaleString()}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className={`text-sm font-medium ${holding.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {holding.profitLoss >= 0 ? '+' : ''}${holding.profitLoss.toLocaleString()}
+                          {holding.profitLoss >= 0 ? '+' : ''}${Math.round(holding.profitLoss).toLocaleString()}
                         </div>
                         <div className={`text-xs ${holding.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                           {holding.profitLossPercent >= 0 ? '+' : ''}{holding.profitLossPercent.toFixed(2)}%
@@ -498,9 +1017,9 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                   {portfolioData.capitalPlans.map((plan, index) => (
                     <div key={index} className="bg-gray-700 p-4 rounded-lg border border-gray-600">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-lg font-semibold text-white">{plan.plan || plan.name}</div>
+                        <div className="text-lg font-semibold text-white">{plan.asset_name || plan.plan || plan.name}</div>
                         <div className="text-xs bg-green-500 text-white px-2 py-1 rounded shadow-lg">
-                          {plan.growth_rate || plan.rate}% Monthly
+                          {plan.monthly_rate || plan.growth_rate || plan.rate}% Monthly
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -510,11 +1029,22 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-400">Duration</span>
-                          <span className="text-sm text-white">{plan.months || 'N/A'} months</span>
+                          <span className="text-sm text-white">{plan.duration_months || plan.months || 'N/A'} months</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-400">Date</span>
-                          <span className="text-sm text-white">{new Date(plan.date).toLocaleDateString()}</span>
+                          <span className="text-sm text-white">
+                            {(() => {
+                              try {
+                                const dateValue = plan.created_at || plan.date;
+                                if (!dateValue) return 'N/A';
+                                return formatDate(dateValue);
+                              } catch (error) {
+                                console.warn('Date formatting error for plan:', plan, error);
+                                return 'N/A';
+                              }
+                            })()}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -539,9 +1069,9 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                   {portfolioData.realEstateInvestments.map((investment, index) => (
                     <div key={index} className="bg-gray-700 p-4 rounded-lg border border-gray-600">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-lg font-semibold text-white">{investment.name || 'Real Estate'}</div>
+                        <div className="text-lg font-semibold text-white">{investment.asset_name || investment.name || 'Real Estate'}</div>
                         <div className="text-xs bg-green-500 text-white px-2 py-1 rounded shadow-lg">
-                          {investment.rate || 'N/A'}% Monthly
+                          {investment.monthly_rate || investment.rate || 'N/A'}% Monthly
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -550,8 +1080,23 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                           <span className="text-sm font-medium text-white">${(investment.amount || 0).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
+                          <span className="text-sm text-gray-400">Duration</span>
+                          <span className="text-sm text-white">{investment.duration_months || investment.months || 'N/A'} months</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-sm text-gray-400">Date</span>
-                          <span className="text-sm text-white">{new Date(investment.date).toLocaleDateString()}</span>
+                          <span className="text-sm text-white">
+                            {(() => {
+                              try {
+                                const dateValue = investment.created_at || investment.date;
+                                if (!dateValue) return 'N/A';
+                                return formatDate(dateValue);
+                              } catch (error) {
+                                console.warn('Date formatting error for investment:', investment, error);
+                                return 'N/A';
+                              }
+                            })()}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -597,7 +1142,12 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-400">Available:</span>
-                      <div className="font-semibold text-white">{selectedHolding.quantity.toFixed(6)} {selectedHolding.coin}</div>
+                      <div className="font-semibold text-white">
+                        {(typeof selectedHolding.quantity === 'number') 
+                          ? `${selectedHolding.quantity.toFixed(6)} ${selectedHolding.coin}` 
+                          : `0 ${selectedHolding.coin}`
+                        }
+                      </div>
                     </div>
                     <div>
                       <span className="text-gray-400">Sell Price:</span>
@@ -615,7 +1165,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                     <input
                       type="number"
                       step="0.000001"
-                      max={selectedHolding.quantity}
+                      max={selectedHolding.quantity || 0}
                       value={sellAmount}
                       onChange={(e) => setSellAmount(e.target.value)}
                       className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
@@ -627,25 +1177,41 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                   </div>
                   <div className="flex justify-between mt-2">
                     <button
-                      onClick={() => setSellAmount((selectedHolding.quantity * 0.25).toFixed(6))}
+                      onClick={() => setSellAmount(
+                        (typeof selectedHolding.quantity === 'number') 
+                          ? (selectedHolding.quantity * 0.25).toFixed(6) 
+                          : '0'
+                      )}
                       className="text-xs text-blue-400 hover:text-blue-300"
                     >
                       25%
                     </button>
                     <button
-                      onClick={() => setSellAmount((selectedHolding.quantity * 0.5).toFixed(6))}
+                      onClick={() => setSellAmount(
+                        (typeof selectedHolding.quantity === 'number') 
+                          ? (selectedHolding.quantity * 0.5).toFixed(6) 
+                          : '0'
+                      )}
                       className="text-xs text-blue-400 hover:text-blue-300"
                     >
                       50%
                     </button>
                     <button
-                      onClick={() => setSellAmount((selectedHolding.quantity * 0.75).toFixed(6))}
+                      onClick={() => setSellAmount(
+                        (typeof selectedHolding.quantity === 'number') 
+                          ? (selectedHolding.quantity * 0.75).toFixed(6) 
+                          : '0'
+                      )}
                       className="text-xs text-blue-400 hover:text-blue-300"
                     >
                       75%
                     </button>
                     <button
-                      onClick={() => setSellAmount(selectedHolding.quantity.toFixed(6))}
+                      onClick={() => setSellAmount(
+                        (typeof selectedHolding.quantity === 'number') 
+                          ? selectedHolding.quantity.toFixed(6) 
+                          : '0'
+                      )}
                       className="text-xs text-blue-400 hover:text-blue-300"
                     >
                       Max

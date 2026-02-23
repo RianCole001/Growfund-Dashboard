@@ -21,7 +21,7 @@ export const demoData = {
     avatar: null
   },
 
-  balance: 15750.00,
+  balance: 10000.00,
 
   investments: [
     {

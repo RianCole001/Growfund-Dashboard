@@ -53,9 +53,9 @@ export default function ProtectedAdminRoute({ children }) {
     );
   }
 
-  // Not authenticated - let AdminApp handle login
+  // Not authenticated - redirect to admin login
   if (!isAuthenticated) {
-    return children;
+    return <Navigate to="/admin/login" replace />;
   }
 
   // Authenticated but not admin - show access denied

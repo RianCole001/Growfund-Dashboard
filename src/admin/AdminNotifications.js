@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Bell, Users, AlertCircle, CheckCircle, X, Eye, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { adminAuthAPI } from '../services/api';
 
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState([]);
@@ -22,35 +23,8 @@ export default function AdminNotifications() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await adminAuthAPI.getNotifications();
-      // setNotifications(response.data);
-      
-      // Mock data for now
-      setNotifications([
-        {
-          id: 1,
-          title: 'Welcome to GrowFund',
-          message: 'Thank you for joining our investment platform. Start your journey today!',
-          type: 'success',
-          target: 'all',
-          priority: 'normal',
-          sent_count: 156,
-          created_at: '2024-02-16T10:00:00Z',
-          status: 'sent'
-        },
-        {
-          id: 2,
-          title: 'System Maintenance',
-          message: 'Scheduled maintenance will occur on Sunday from 2-4 AM UTC.',
-          type: 'warning',
-          target: 'all',
-          priority: 'high',
-          sent_count: 156,
-          created_at: '2024-02-15T14:30:00Z',
-          status: 'sent'
-        }
-      ]);
+      const response = await adminAuthAPI.getNotifications();
+      setNotifications(response.data.data || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast.error('Failed to load notifications');
@@ -68,19 +42,16 @@ export default function AdminNotifications() {
     try {
       setLoading(true);
       
-      // TODO: Replace with actual API call
-      // const response = await adminAuthAPI.createNotification(newNotification);
+      const response = await adminAuthAPI.sendNotification({
+        title: newNotification.title,
+        message: newNotification.message,
+        type: newNotification.type,
+        priority: newNotification.priority,
+        target: newNotification.target,
+        target_users: newNotification.targetUsers
+      });
       
-      // Mock success
-      const mockNotification = {
-        id: Date.now(),
-        ...newNotification,
-        sent_count: newNotification.target === 'all' ? 156 : 0,
-        created_at: new Date().toISOString(),
-        status: 'sent'
-      };
-      
-      setNotifications([mockNotification, ...notifications]);
+      setNotifications([response.data.data, ...notifications]);
       setShowCreateModal(false);
       setNewNotification({
         title: '',
@@ -91,7 +62,7 @@ export default function AdminNotifications() {
         priority: 'normal'
       });
       
-      toast.success('Notification sent successfully!');
+      toast.success(`Notification sent to ${response.data.data.sent_count} users!`);
     } catch (error) {
       console.error('Error creating notification:', error);
       toast.error('Failed to send notification');
@@ -104,9 +75,7 @@ export default function AdminNotifications() {
     if (!window.confirm('Are you sure you want to delete this notification?')) return;
     
     try {
-      // TODO: Replace with actual API call
-      // await adminAuthAPI.deleteNotification(id);
-      
+      await adminAuthAPI.deleteNotification(id);
       setNotifications(notifications.filter(n => n.id !== id));
       toast.success('Notification deleted');
     } catch (error) {

@@ -1,48 +1,62 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Bar, BarChart } from 'recharts';
 import { TrendingUp, DollarSign, Calendar, Target, Shield, Zap, Award, Info, X } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+import toast from 'react-hot-toast';
 
 const storage = require('../utils/storage').default;
 
 export default function CapitalPlan({ investments = [], balance = 0, onInvest = () => {}, onNotify = () => {} }) {
-  const plans = [
-    { 
-      key: 'basic', 
-      name: 'Basic', 
-      rate: 20, 
-      min: 100, 
-      desc: 'Steady growth with 20% monthly returns. Perfect for beginners.',
-      icon: Shield,
-      color: 'from-cyan-400 via-blue-500 to-blue-600',
-      badge: '🛡️ Safe',
-      features: ['20% Monthly', 'Low Risk', 'Flexible Terms']
-    },
-    { 
-      key: 'standard', 
-      name: 'Standard', 
-      rate: 30, 
-      min: 500, 
-      desc: 'Balanced growth with 30% monthly returns. Most popular choice.',
-      icon: Target,
-      color: 'from-purple-400 via-pink-500 to-purple-600',
-      badge: '⚡ Popular',
-      features: ['30% Monthly', 'Balanced Risk', 'Monthly Reports']
-    },
-    { 
-      key: 'advance', 
-      name: 'Advance', 
-      rate: 40, 
-      min: 2000, 
-      desc: 'Maximum growth with 40%, 50%, or 60% monthly returns.',
-      icon: Zap,
-      color: 'from-orange-400 via-red-500 to-pink-600',
-      badge: '🚀 Premium',
-      features: ['40-60% Monthly', 'High Returns', 'Priority Support']
-    },
-  ];
+  const { settings } = useSettings();
+  
+  const plans = useMemo(() => {
+    console.log('💰 CapitalPlan - Current settings:', settings);
+    console.log('💰 CapitalPlan - Individual minimums:', {
+      basic: settings.capitalBasicMin,
+      standard: settings.capitalStandardMin,
+      advance: settings.capitalAdvanceMin
+    });
+    console.log('💰 CapitalPlan - Settings loading state:', { loading: settings.loading });
+    
+    return [
+      { 
+        key: 'basic', 
+        name: 'Basic', 
+        rate: 20, 
+        min: settings.capitalBasicMin || 100, 
+        desc: 'Steady growth with 20% monthly returns. Perfect for beginners.',
+        icon: Shield,
+        color: 'from-cyan-400 via-blue-500 to-blue-600',
+        badge: '🛡️ Safe',
+        features: ['20% Monthly', 'Low Risk', 'Flexible Terms']
+      },
+      { 
+        key: 'standard', 
+        name: 'Standard', 
+        rate: 30, 
+        min: settings.capitalStandardMin || 500, 
+        desc: 'Balanced growth with 30% monthly returns. Most popular choice.',
+        icon: Target,
+        color: 'from-purple-400 via-pink-500 to-purple-600',
+        badge: '⚡ Popular',
+        features: ['30% Monthly', 'Balanced Risk', 'Monthly Reports']
+      },
+      { 
+        key: 'advance', 
+        name: 'Advance', 
+        rate: 40, 
+        min: settings.capitalAdvanceMin || 2000, 
+        desc: 'Maximum growth with 40%, 50%, or 60% monthly returns.',
+        icon: Zap,
+        color: 'from-orange-400 via-red-500 to-pink-600',
+        badge: '🚀 Premium',
+        features: ['40-60% Monthly', 'High Returns', 'Priority Support']
+      },
+    ];
+  }, [settings.capitalBasicMin, settings.capitalStandardMin, settings.capitalAdvanceMin]);
 
   const [selected, setSelected] = useState(plans[0].key);
-  const [amount, setAmount] = useState(1000);
+  const [amount, setAmount] = useState(100); // Will be updated by useEffect
   const [months, setMonths] = useState(6);
   const [advanceRate, setAdvanceRate] = useState(40);
   const [showOnboard, setShowOnboard] = useState(false);
@@ -58,6 +72,14 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
     const seen = storage.get('seenCapitalOnboarding', false);
     setShowOnboard(!seen);
   }, []);
+
+  // Update amount when settings change or selected plan changes
+  useEffect(() => {
+    const selectedPlan = plans.find(p => p.key === selected);
+    if (selectedPlan && amount < selectedPlan.min) {
+      setAmount(selectedPlan.min);
+    }
+  }, [settings.capitalBasicMin, settings.capitalStandardMin, settings.capitalAdvanceMin, selected, plans]);
 
   const dismissOnboard = () => {
     storage.set('seenCapitalOnboarding', true);
@@ -95,8 +117,11 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const percentageGain = amount > 0 ? ((totalGain / amount) * 100).toFixed(1) : 0;
 
   const openConfirm = (amt, plan) => {
-    if (amt < plan.min) {
-      alert(`Minimum investment for ${plan.name} plan is $${plan.min}`);
+    // Use the specific plan's minimum investment
+    const minInvestment = plan.min;
+    
+    if (amt < minInvestment) {
+      toast.error(`Minimum investment for ${plan.name} plan is $${minInvestment}`);
       return;
     }
     if (amt > balance) {
@@ -105,12 +130,13 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
     }
     const growthRate = selected === 'advance' ? advanceRate : plan.rate;
     const pay = { 
+      type: 'capital_plan',
       amount: Number(amt || 0), 
       plan: plan.name, 
       plan_type: selected,
       name: `Capital Plan - ${plan.name}`, 
       months,
-      growth_rate: growthRate
+      rate: growthRate
     };
     setConfirmData(pay);
     setConfirmOpen(true);
@@ -122,7 +148,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
     if (typeof onNotify === 'function') onNotify(`Invested ${Number(confirmData.amount).toLocaleString()} in ${confirmData.plan}`);
     setConfirmOpen(false);
     setConfirmData(null);
-    setAmount(1000);
+    setAmount(selectedPlan.min);
   };
 
   return (

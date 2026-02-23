@@ -1,37 +1,42 @@
 import React, { useMemo, useState } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts';
 import { TrendingUp, Home, DollarSign, Calendar, Zap, Award, Info, X } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+import toast from 'react-hot-toast';
 
 const plans = [
   { 
     id: 'RE_BASIC', 
     name: 'Starter Property', 
     details: 'Entry-level real estate with steady 20% monthly returns',
-    min: 1000, 
+    min: 1000, // This will be overridden by settings
     rate: 20,
     icon: Home,
     color: 'from-green-500 via-emerald-500 to-green-600',
-    badge: '🏠 Starter'
+    badge: '🏠 Starter',
+    settingsKey: 'realEstateStarterMin'
   },
   { 
     id: 'RE_STANDARD', 
     name: 'Premium Property', 
     details: 'Mid-tier real estate with 30% monthly returns',
-    min: 5000, 
+    min: 5000, // This will be overridden by settings
     rate: 30,
     icon: TrendingUp,
     color: 'from-purple-400 via-pink-500 to-purple-600',
-    badge: '🏢 Premium'
+    badge: '🏢 Premium',
+    settingsKey: 'realEstatePremiumMin'
   },
   { 
     id: 'RE_LUXURY', 
     name: 'Luxury Estate', 
     details: 'High-end real estate with premium 50% monthly returns',
-    min: 20000, 
+    min: 20000, // This will be overridden by settings
     rate: 50,
     icon: Award,
     color: 'from-yellow-400 via-orange-500 to-red-600',
-    badge: '👑 Luxury'
+    badge: '👑 Luxury',
+    settingsKey: 'realEstateLuxuryMin'
   },
 ];
 
@@ -66,8 +71,10 @@ function computeProjection(principal, months, monthlyRate) {
 }
 
 export default function RealEstate({ balance = 0, onInvest = () => {} }) {
+  const { settings } = useSettings();
+  
   const [selected, setSelected] = useState(plans[0].id);
-  const [amount, setAmount] = useState(plans[0].min);
+  const [amount, setAmount] = useState(settings.minRealEstateInvestment || plans[0].min);
   const [months, setMonths] = useState(6);
   const [detailOpen, setDetailOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -77,11 +84,32 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
   const plan = plans.find((p) => p.id === selected);
   const PlanIcon = plan.icon;
 
+  // Get the actual minimum investment for the selected plan
+  const getMinInvestment = () => {
+    const minValue = settings[plan.settingsKey] || plan.min;
+    console.log(`🏠 RealEstate - Getting min investment for ${plan.name}:`, {
+      settingsKey: plan.settingsKey,
+      settingsValue: settings[plan.settingsKey],
+      fallbackValue: plan.min,
+      finalValue: minValue
+    });
+    return minValue;
+  };
+
   const selectPlan = (id) => {
     const p = plans.find((pp) => pp.id === id);
     setSelected(id);
-    setAmount(p.min);
+    const minInvestment = settings[p.settingsKey] || p.min;
+    setAmount(Math.max(minInvestment, p.min));
   };
+
+  // Update amount when settings change
+  React.useEffect(() => {
+    const minInvestment = getMinInvestment();
+    if (amount < minInvestment) {
+      setAmount(minInvestment);
+    }
+  }, [settings.realEstateStarterMin, settings.realEstatePremiumMin, settings.realEstateLuxuryMin]);
 
   const data = useMemo(() => computeProjection(amount, months, plan.rate), [amount, months, plan]);
 
@@ -90,8 +118,11 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
   const roiPct = ((profit / (Number(amount) || 1)) * 100).toFixed(1);
 
   const doInvest = () => {
-    if (amount < plan.min) {
-      alert(`Minimum investment for ${plan.name} is $${plan.min}`);
+    // Use platform settings for minimum investment
+    const minInvestment = getMinInvestment();
+    
+    if (amount < minInvestment) {
+      toast.error(`Minimum investment for ${plan.name} is $${minInvestment}`);
       return;
     }
     if (amount > balance) {
@@ -100,7 +131,7 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
     }
     
     const payload = { 
-      asset: plan.id, 
+      type: 'real_estate',
       name: plan.name, 
       amount: Number(amount), 
       months,
@@ -172,7 +203,7 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
                 <p className="text-sm text-gray-400 mb-4">{p.details}</p>
 
                 <div className="flex items-center justify-between pt-3 border-t border-gray-700">
-                  <span className="text-xs text-gray-500">Min. ${p.min.toLocaleString()}</span>
+                  <span className="text-xs text-gray-500">Min. ${(settings[p.settingsKey] || p.min).toLocaleString()}</span>
                   <button 
                     onClick={(e) => { e.stopPropagation(); selectPlan(p.id); }}
                     className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
@@ -207,7 +238,7 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
                 className="w-full bg-gray-800 rounded-xl p-4 text-2xl font-bold text-center focus:ring-4 focus:ring-amber-500 focus:outline-none transition-all" 
               />
               <div className="flex justify-between mt-3 text-xs">
-                <span className="text-gray-500">Min: ${plan.min.toLocaleString()}</span>
+                <span className="text-gray-500">Min: ${getMinInvestment().toLocaleString()}</span>
                 <span className="text-gray-500">Max: ${balance.toLocaleString()}</span>
               </div>
               <div className="grid grid-cols-4 gap-2 mt-3">

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { ArrowUpCircle, DollarSign, Check, Shield, CreditCard, Building, Smartphone, AlertCircle } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import toast from 'react-hot-toast';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function Withdrawals({ balance, onWithdraw }) {
+  const { settings } = useSettings();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('Bank');
   const [step, setStep] = useState(1);
@@ -60,17 +62,29 @@ export default function Withdrawals({ balance, onWithdraw }) {
   };
 
   const handleSubmit = () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount');
+    const amt = parseFloat(amount);
+    
+    if (!amount || amt <= 0) {
+      toast.error('Please enter a valid amount');
       return;
     }
 
-    const amt = parseFloat(amount);
+    // Validate against platform settings
+    if (amt < settings.minWithdrawal) {
+      toast.error(`Minimum withdrawal amount is $${settings.minWithdrawal}`);
+      return;
+    }
+
+    if (amt > settings.maxWithdrawal) {
+      toast.error(`Maximum withdrawal amount is $${settings.maxWithdrawal}`);
+      return;
+    }
+
     const fee = calculateFee();
     const total = amt + fee;
 
     if (total > balance) {
-      alert('Insufficient balance (including fees)');
+      toast.error('Insufficient balance (including fees)');
       return;
     }
 
@@ -82,7 +96,7 @@ export default function Withdrawals({ balance, onWithdraw }) {
     if (step === 2) {
       const error = validateStep2();
       if (error) {
-        alert(error);
+        toast.error(error);
         return;
       }
       setStep(3);
