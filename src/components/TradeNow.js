@@ -513,7 +513,7 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
     <div className="h-screen overflow-hidden bg-[#0f0f0f] text-white flex flex-col">
       {/* Compact Top Bar */}
       <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] px-2 py-1.5 flex-shrink-0">
-        <div className="flex items-center justify-between max-w-7xl mx-auto gap-2">
+        <div className="flex items-center justify-between w-full gap-2">
           <div className="flex items-center space-x-2">
             {/* Asset Selector */}
             <div className="relative">
@@ -562,14 +562,14 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
 
       {/* Main Content - Fixed Height */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full max-w-7xl mx-auto p-1.5">
-          <div className="h-full grid grid-cols-1 lg:grid-cols-4 gap-1.5">
-            {/* Chart & Trades Area */}
-            <div className="lg:col-span-3 flex flex-col min-h-0 gap-1.5">
+        <div className="h-full w-full mx-auto p-1 sm:p-1.5">
+          <div className="h-full grid grid-cols-1 xl:grid-cols-5 gap-1 sm:gap-1.5">
+            {/* Chart & Trades Area - Takes more space on desktop */}
+            <div className="xl:col-span-4 flex flex-col min-h-0 gap-1 sm:gap-1.5 order-1">
               {/* Chart */}
-              <div className="bg-[#1a1a1a] rounded border border-[#2a2a2a] p-1.5 flex-shrink-0">
+              <div className="bg-[#1a1a1a] rounded border border-[#2a2a2a] p-1 sm:p-1.5 flex-shrink-0">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xs font-semibold">{selectedAsset} Live</h3>
+                  <h3 className="text-xs sm:text-sm font-semibold">{selectedAsset} Live</h3>
                   <button className="p-0.5 hover:bg-[#2a2a2a] rounded transition-colors">
                     <Settings className="w-3 h-3" />
                   </button>
@@ -583,8 +583,8 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
                 />
               </div>
 
-              {/* Trades Panel */}
-              <div className="bg-[#1a1a1a] rounded border border-[#2a2a2a] p-1.5 flex-1 min-h-0 overflow-hidden flex flex-col">
+              {/* Trades Panel - Hidden on mobile, shown on tablet+ */}
+              <div className="hidden sm:flex bg-[#1a1a1a] rounded border border-[#2a2a2a] p-1 sm:p-1.5 flex-1 min-h-0 overflow-hidden flex-col">
                 {/* Tabs */}
                 <div className="flex space-x-2 border-b border-[#2a2a2a] mb-1.5 flex-shrink-0">
                   <button
@@ -681,9 +681,9 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
               </div>
             </div>
 
-            {/* Trade Panel - Compact */}
-            <div className="lg:col-span-1 flex flex-col min-h-0">
-              <div className="bg-[#1a1a1a] rounded border border-[#2a2a2a] p-2 overflow-y-auto">
+            {/* Trade Panel - Compact, better mobile layout */}
+            <div className="xl:col-span-1 flex flex-col min-h-0 order-2">
+              <div className="bg-[#1a1a1a] rounded border border-[#2a2a2a] p-1.5 sm:p-2 overflow-y-auto max-h-[calc(100vh-120px)] xl:max-h-none">
                 <h3 className="text-xs font-semibold mb-1.5">Trade Panel</h3>
 
                 {/* Amount Input */}
@@ -790,6 +790,96 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
                     <span className="text-gray-400 font-semibold">{tradeState.tradeHistory.length}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Mobile Trades Section - Only visible on mobile */}
+            <div className="sm:hidden bg-[#1a1a1a] rounded border border-[#2a2a2a] p-1.5 order-3">
+              <div className="flex space-x-2 border-b border-[#2a2a2a] mb-1.5">
+                <button
+                  onClick={() => setActiveTab('open')}
+                  className={`pb-1 px-1 text-xs font-semibold transition-colors ${
+                    activeTab === 'open'
+                      ? 'text-[#2ecc71] border-b-2 border-[#2ecc71]'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Open ({tradeState.activeTrades.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className={`pb-1 px-1 text-xs font-semibold transition-colors ${
+                    activeTab === 'history'
+                      ? 'text-[#2ecc71] border-b-2 border-[#2ecc71]'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  History ({tradeState.tradeHistory.length})
+                </button>
+              </div>
+
+              <div className="max-h-40 overflow-y-auto">
+                {activeTab === 'open' && (
+                  <div className="space-y-1">
+                    {tradeState.activeTrades.length === 0 ? (
+                      <div className="text-center py-3 text-gray-400 text-xs">
+                        No open trades
+                      </div>
+                    ) : (
+                      tradeState.activeTrades.map(trade => (
+                        <div key={trade.id} className="bg-[#2a2a2a] rounded p-1.5 flex items-center justify-between">
+                          <div className="flex items-center space-x-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${trade.direction === 'buy' ? 'bg-[#2ecc71]' : 'bg-[#e74c3c]'}`} />
+                            <div>
+                              <div className="text-xs font-semibold">{trade.asset}</div>
+                              <div className="text-xs text-gray-400">
+                                ${trade.strikePrice.toFixed(2)} | ${trade.amount}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-xs font-bold ${trade.direction === 'buy' ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}`}>
+                              {trade.direction.toUpperCase()}
+                            </div>
+                            <div className="text-xs text-[#f1c40f] flex items-center">
+                              <Clock className="w-2.5 h-2.5 mr-0.5" />
+                              {formatTime(trade.timeLeft)}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'history' && (
+                  <div className="space-y-1">
+                    {tradeState.tradeHistory.length === 0 ? (
+                      <div className="text-center py-3 text-gray-400 text-xs">
+                        No trade history
+                      </div>
+                    ) : (
+                      tradeState.tradeHistory.slice(0, 5).map(trade => (
+                        <div key={trade.id} className="bg-[#2a2a2a] rounded p-1.5 flex items-center justify-between">
+                          <div className="flex items-center space-x-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${trade.profit > 0 ? 'bg-[#2ecc71]' : 'bg-[#e74c3c]'}`} />
+                            <div>
+                              <div className="text-xs font-semibold">{trade.asset}</div>
+                              <div className="text-xs text-gray-400">
+                                ${trade.strikePrice.toFixed(2)} → ${trade.finalPrice.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-xs font-bold ${trade.profit > 0 ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}`}>
+                              {trade.profit > 0 ? '+' : ''}${trade.profit.toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
