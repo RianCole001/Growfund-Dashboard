@@ -242,6 +242,24 @@ export const notificationsAPI = {
   getNotifications: () => userApi.get('/notifications/'),
 };
 
+// Binary Options API (user)
+export const binaryOptionsAPI = {
+  // Assets
+  getAssets: () => userApi.get('/binary/assets/'),
+  
+  // Prices
+  getAllPrices: () => userApi.get('/binary/prices/'),
+  getAssetPrice: (symbol) => userApi.get(`/binary/assets/${symbol}/price/`),
+  
+  // Trades
+  openTrade: (data) => userApi.post('/binary/trades/open/', data),
+  getActiveTrades: () => userApi.get('/binary/trades/active/'),
+  getTradeHistory: (params) => userApi.get('/binary/trades/history/', { params }),
+  
+  // Stats
+  getUserStats: () => userApi.get('/binary/stats/'),
+};
+
 // Keep old authAPI for backward compatibility
 export const authAPI = userAuthAPI;
 

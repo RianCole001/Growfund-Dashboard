@@ -27,9 +27,9 @@ export const SettingsProvider = ({ children }) => {
     minRealEstateInvestment: 1000,
     minCryptoInvestment: 50,
     // Capital Plan Individual Minimums
-    capitalBasicMin: 100,
-    capitalStandardMin: 500,
-    capitalAdvanceMin: 2000,
+    capitalBasicMin: 30,
+    capitalStandardMin: 60,
+    capitalAdvanceMin: 100,
     // Real Estate Individual Minimums
     realEstateStarterMin: 1000,
     realEstatePremiumMin: 5000,
@@ -84,9 +84,9 @@ export const SettingsProvider = ({ children }) => {
           minRealEstateInvestment: parseFloat(publicSettings.minRealEstateInvestment) || 1000,
           minCryptoInvestment: parseFloat(publicSettings.minCryptoInvestment) || 50,
           // Capital Plan Individual Minimums
-          capitalBasicMin: parseFloat(publicSettings.capitalBasicMin) || 100,
-          capitalStandardMin: parseFloat(publicSettings.capitalStandardMin) || 500,
-          capitalAdvanceMin: parseFloat(publicSettings.capitalAdvanceMin) || 2000,
+          capitalBasicMin: parseFloat(publicSettings.capitalBasicMin) || 30,
+          capitalStandardMin: parseFloat(publicSettings.capitalStandardMin) || 60,
+          capitalAdvanceMin: parseFloat(publicSettings.capitalAdvanceMin) || 100,
           // Real Estate Individual Minimums
           realEstateStarterMin: parseFloat(publicSettings.realEstateStarterMin) || 1000,
           realEstatePremiumMin: parseFloat(publicSettings.realEstatePremiumMin) || 5000,

@@ -367,12 +367,12 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-gray-800 p-6 rounded-lg animate-pulse h-24" />
+            <div key={i} className="bg-white border border-gray-200 p-6 rounded-lg animate-pulse h-24" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-gray-800 p-6 rounded-lg animate-pulse h-80" />
-          <div className="bg-gray-800 p-6 rounded-lg animate-pulse h-80" />
+          <div className="bg-white border border-gray-200 p-6 rounded-lg animate-pulse h-80" />
+          <div className="bg-white border border-gray-200 p-6 rounded-lg animate-pulse h-80" />
         </div>
       </div>
     );
@@ -461,7 +461,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       </div>
 
       {/* View Mode Tabs */}
-      <div className="bg-gray-800 p-4 rounded-lg">
+      <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
         <div className="flex space-x-2 overflow-x-auto">
           {[
             { key: 'overview', label: 'Overview', icon: BarChart3 },
@@ -476,8 +476,8 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                 onClick={() => setViewMode(tab.key)}
                 className={`flex items-center px-4 py-2 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap ${
                   viewMode === tab.key
-                    ? 'bg-green-500 text-white shadow-lg'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    ? 'bg-green-600 text-white shadow-lg'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 <Icon className="w-4 h-4 mr-2" />
@@ -492,9 +492,9 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       {viewMode === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Portfolio Allocation */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2 text-green-500" />
+          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <BarChart3 className="w-5 h-5 mr-2 text-green-600" />
               Portfolio Allocation
             </h3>
             {allocationData.length > 0 ? (
@@ -519,7 +519,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-600">
                 No investments yet
               </div>
             )}
@@ -530,16 +530,16 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                     className="w-3 h-3 rounded-full mr-2" 
                     style={{ backgroundColor: item.color }}
                   ></div>
-                  <span className="text-sm text-gray-300">{item.name}</span>
+                  <span className="text-sm text-gray-700">{item.name}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Portfolio Growth */}
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
+          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
               Investment Growth
             </h3>
             {growthData.length > 0 ? (
@@ -552,13 +552,13 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                         <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
-                    <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                    <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: '1px solid #10B981', 
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #16a34a', 
                         borderRadius: '8px'
                       }}
                       formatter={(value) => [`$${value.toLocaleString()}`, 'Total Invested']} 
@@ -574,19 +574,19 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-600">
                 No investment history yet
               </div>
             )}
           </div>
 
           {/* Expected Returns Projection */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <Target className="w-5 h-5 mr-2 text-blue-500" />
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <Target className="w-5 h-5 mr-2 text-green-600" />
               Expected Returns (12-Month Projection)
             </h3>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 mb-4">
               Projected portfolio growth based on historical returns and investment types
             </p>
             {expectedReturnsData.length > 0 ? (
@@ -611,13 +611,13 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                         <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
-                    <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                    <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: '1px solid #3B82F6', 
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #16a34a', 
                         borderRadius: '8px'
                       }}
                       formatter={(value, name) => {
@@ -670,7 +670,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-600">
                 <div className="text-center">
                   <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>No investments to project</p>
@@ -683,40 +683,40 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
             <div className="mt-4 flex flex-wrap gap-4 justify-center">
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                <span className="text-sm text-gray-300">Capital Plans</span>
+                <span className="text-sm text-gray-700">Capital Plans</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-amber-500 rounded mr-2"></div>
-                <span className="text-sm text-gray-300">Real Estate</span>
+                <span className="text-sm text-gray-700">Real Estate</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
-                <span className="text-sm text-gray-300">Crypto</span>
+                <span className="text-sm text-gray-700">Crypto</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-1 bg-blue-500 rounded mr-2" style={{borderStyle: 'dashed'}}></div>
-                <span className="text-sm text-gray-300">Total Portfolio</span>
+                <span className="text-sm text-gray-700">Total Portfolio</span>
               </div>
             </div>
             
             {/* Projection Summary */}
             {expectedReturnsData.length > 0 && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">Current Portfolio</div>
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">Current Portfolio</div>
                   <div className="text-xl font-bold text-white">
                     ${portfolioData.totals.totalPortfolioValue.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">12-Month Projection</div>
-                  <div className="text-xl font-bold text-blue-400">
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">12-Month Projection</div>
+                  <div className="text-xl font-bold text-green-600">
                     ${expectedReturnsData[expectedReturnsData.length - 1]?.totalValue.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">Expected Gain</div>
-                  <div className="text-xl font-bold text-green-400">
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">Expected Gain</div>
+                  <div className="text-xl font-bold text-green-600">
                     +${((expectedReturnsData[expectedReturnsData.length - 1]?.totalValue || 0) - portfolioData.totals.totalPortfolioValue).toLocaleString()}
                   </div>
                 </div>
@@ -729,28 +729,28 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       {viewMode === 'projections' && (
         <div className="space-y-6">
           {/* Expected Returns Projection */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <Target className="w-5 h-5 mr-2 text-blue-500" />
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <Target className="w-5 h-5 mr-2 text-green-600" />
               Expected Returns (12-Month Projection)
             </h3>
-            <p className="text-sm text-gray-400 mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               Projected portfolio growth based on historical returns and investment types. This projection assumes:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gray-700 p-4 rounded-lg">
-                <div className="text-sm text-gray-400 mb-1">Crypto Growth</div>
-                <div className="text-lg font-bold text-purple-400">5% Monthly</div>
+              <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                <div className="text-sm text-gray-600 mb-1">Crypto Growth</div>
+                <div className="text-lg font-bold text-green-600">5% Monthly</div>
                 <div className="text-xs text-gray-500">Average market performance</div>
               </div>
-              <div className="bg-gray-700 p-4 rounded-lg">
-                <div className="text-sm text-gray-400 mb-1">Capital Plans</div>
-                <div className="text-lg font-bold text-green-400">20-60% Monthly</div>
+              <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                <div className="text-sm text-gray-600 mb-1">Capital Plans</div>
+                <div className="text-lg font-bold text-green-600">20-60% Monthly</div>
                 <div className="text-xs text-gray-500">Based on plan type</div>
               </div>
-              <div className="bg-gray-700 p-4 rounded-lg">
-                <div className="text-sm text-gray-400 mb-1">Real Estate</div>
-                <div className="text-lg font-bold text-amber-400">20-50% Monthly</div>
+              <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                <div className="text-sm text-gray-600 mb-1">Real Estate</div>
+                <div className="text-lg font-bold text-green-600">20-50% Monthly</div>
                 <div className="text-xs text-gray-500">Based on property type</div>
               </div>
             </div>
@@ -777,13 +777,13 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                         <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.1}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
-                    <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                    <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: '1px solid #3B82F6', 
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #16a34a', 
                         borderRadius: '8px'
                       }}
                       formatter={(value, name) => {
@@ -836,7 +836,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-gray-400">
+              <div className="h-64 flex items-center justify-center text-gray-600">
                 <div className="text-center">
                   <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>No investments to project</p>
@@ -849,40 +849,40 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
             <div className="mt-6 flex flex-wrap gap-6 justify-center">
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                <span className="text-sm text-gray-300">Capital Plans</span>
+                <span className="text-sm text-gray-700">Capital Plans</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-amber-500 rounded mr-2"></div>
-                <span className="text-sm text-gray-300">Real Estate</span>
+                <span className="text-sm text-gray-700">Real Estate</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
-                <span className="text-sm text-gray-300">Crypto</span>
+                <span className="text-sm text-gray-700">Crypto</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-1 bg-blue-500 rounded mr-2" style={{borderStyle: 'dashed'}}></div>
-                <span className="text-sm text-gray-300">Total Portfolio</span>
+                <span className="text-sm text-gray-700">Total Portfolio</span>
               </div>
             </div>
             
             {/* Projection Summary */}
             {expectedReturnsData.length > 0 && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">Current Portfolio</div>
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">Current Portfolio</div>
                   <div className="text-xl font-bold text-white">
                     ${portfolioData.totals.totalPortfolioValue.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">12-Month Projection</div>
-                  <div className="text-xl font-bold text-blue-400">
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">12-Month Projection</div>
+                  <div className="text-xl font-bold text-green-600">
                     ${expectedReturnsData[expectedReturnsData.length - 1]?.totalValue.toLocaleString()}
                   </div>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">Expected Gain</div>
-                  <div className="text-xl font-bold text-green-400">
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">Expected Gain</div>
+                  <div className="text-xl font-bold text-green-600">
                     +${((expectedReturnsData[expectedReturnsData.length - 1]?.totalValue || 0) - portfolioData.totals.totalPortfolioValue).toLocaleString()}
                   </div>
                 </div>
@@ -903,18 +903,18 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       )}
 
       {viewMode === 'crypto' && (
-        <div className="bg-gray-800 rounded-lg border border-gray-700">
-          <div className="p-6 border-b border-gray-700">
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
             <h3 className="text-xl font-semibold text-white flex items-center">
               <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
               Crypto Holdings
             </h3>
-            <p className="text-sm text-gray-400 mt-1">Your cryptocurrency investments and current values</p>
+            <p className="text-sm text-gray-600 mt-1">Your cryptocurrency investments and current values</p>
           </div>
           
           {portfolioData.cryptoHoldings.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="text-gray-400 mb-4">
+              <div className="text-gray-600 mb-4">
                 <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No crypto holdings yet</p>
                 <p className="text-sm">Start investing in cryptocurrencies to see your holdings here</p>
@@ -923,21 +923,21 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-700">
+                <thead className="bg-gray-50 border border-gray-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Asset</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Holdings</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Avg Buy Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Current Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Current Value</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Invested</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">P&L</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Asset</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Holdings</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Avg Buy Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Current Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Current Value</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Invested</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">P&L</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
                   {portfolioData.cryptoHoldings.map((holding, index) => (
-                    <tr key={index} className="hover:bg-gray-700/50 transition-colors">
+                    <tr key={index} className="hover:bg-gray-50 border border-gray-200/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="text-sm font-medium text-white">{holding.coin}</div>
@@ -950,15 +950,15 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                             : 'N/A'
                           }
                         </div>
-                        <div className="text-xs text-gray-400">{holding.transactions.length} transactions</div>
+                        <div className="text-xs text-gray-600">{holding.transactions.length} transactions</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-white">${holding.averagePurchasePrice.toFixed(2)}</div>
-                        <div className="text-xs text-gray-400">Average purchase</div>
+                        <div className="text-xs text-gray-600">Average purchase</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-white">${getCurrentPrice(holding.coin).toFixed(2)}</div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-600">
                           {holding.coin === 'EXACOIN' || holding.coin === 'OPTCOIN' ? 'Admin controlled' : 'Market price'}
                         </div>
                       </td>
@@ -966,13 +966,13 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                         <div className="text-sm font-bold text-white">${Math.round(holding.currentValue).toLocaleString()}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-300">${Math.round(holding.totalInvested).toLocaleString()}</div>
+                        <div className="text-sm text-gray-700">${Math.round(holding.totalInvested).toLocaleString()}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm font-medium ${holding.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <div className={`text-sm font-medium ${holding.profitLoss >= 0 ? 'text-green-600' : 'text-red-400'}`}>
                           {holding.profitLoss >= 0 ? '+' : ''}${Math.round(holding.profitLoss).toLocaleString()}
                         </div>
-                        <div className={`text-xs ${holding.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <div className={`text-xs ${holding.profitLoss >= 0 ? 'text-green-600' : 'text-red-400'}`}>
                           {holding.profitLossPercent >= 0 ? '+' : ''}{holding.profitLossPercent.toFixed(2)}%
                         </div>
                       </td>
@@ -1004,35 +1004,35 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
         <div className="space-y-6">
           {/* Capital Investment Plans */}
           {portfolioData.capitalPlans.length > 0 && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700">
-              <div className="p-6 border-b border-gray-700">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
                 <h3 className="text-xl font-semibold text-white flex items-center">
                   <Target className="w-5 h-5 mr-2 text-green-500" />
                   Capital Investment Plans
                 </h3>
-                <p className="text-sm text-gray-400 mt-1">Your active capital growth investments</p>
+                <p className="text-sm text-gray-600 mt-1">Your active capital growth investments</p>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {portfolioData.capitalPlans.map((plan, index) => (
-                    <div key={index} className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+                    <div key={index} className="bg-gray-50 border border-gray-200 p-4 rounded-lg border border-gray-600">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-lg font-semibold text-white">{plan.asset_name || plan.plan || plan.name}</div>
+                        <div className="text-lg font-semibold text-gray-900">{plan.asset_name || plan.plan || plan.name}</div>
                         <div className="text-xs bg-green-500 text-white px-2 py-1 rounded shadow-lg">
                           {plan.monthly_rate || plan.growth_rate || plan.rate}% Monthly
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-400">Invested</span>
+                          <span className="text-sm text-gray-600">Invested</span>
                           <span className="text-sm font-medium text-white">${(plan.amount || 0).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-400">Duration</span>
+                          <span className="text-sm text-gray-600">Duration</span>
                           <span className="text-sm text-white">{plan.duration_months || plan.months || 'N/A'} months</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-400">Date</span>
+                          <span className="text-sm text-gray-600">Date</span>
                           <span className="text-sm text-white">
                             {(() => {
                               try {
@@ -1056,35 +1056,35 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
 
           {/* Real Estate Investments */}
           {portfolioData.realEstateInvestments.length > 0 && (
-            <div className="bg-gray-800 rounded-lg border border-gray-700">
-              <div className="p-6 border-b border-gray-700">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
                 <h3 className="text-xl font-semibold text-white flex items-center">
                   <Award className="w-5 h-5 mr-2 text-green-500" />
                   Real Estate Investments
                 </h3>
-                <p className="text-sm text-gray-400 mt-1">Your real estate portfolio</p>
+                <p className="text-sm text-gray-600 mt-1">Your real estate portfolio</p>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {portfolioData.realEstateInvestments.map((investment, index) => (
-                    <div key={index} className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+                    <div key={index} className="bg-gray-50 border border-gray-200 p-4 rounded-lg border border-gray-600">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-lg font-semibold text-white">{investment.asset_name || investment.name || 'Real Estate'}</div>
+                        <div className="text-lg font-semibold text-gray-900">{investment.asset_name || investment.name || 'Real Estate'}</div>
                         <div className="text-xs bg-green-500 text-white px-2 py-1 rounded shadow-lg">
                           {investment.monthly_rate || investment.rate || 'N/A'}% Monthly
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-400">Invested</span>
+                          <span className="text-sm text-gray-600">Invested</span>
                           <span className="text-sm font-medium text-white">${(investment.amount || 0).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-400">Duration</span>
+                          <span className="text-sm text-gray-600">Duration</span>
                           <span className="text-sm text-white">{investment.duration_months || investment.months || 'N/A'} months</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-400">Date</span>
+                          <span className="text-sm text-gray-600">Date</span>
                           <span className="text-sm text-white">
                             {(() => {
                               try {
@@ -1107,9 +1107,9 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
           )}
 
           {portfolioData.capitalPlans.length === 0 && portfolioData.realEstateInvestments.length === 0 && (
-            <div className="bg-gray-800 p-12 rounded-lg text-center">
-              <Target className="w-12 h-12 mx-auto mb-4 text-gray-400 opacity-50" />
-              <p className="text-gray-400 mb-2">No investment plans yet</p>
+            <div className="bg-white p-12 rounded-lg text-center">
+              <Target className="w-12 h-12 mx-auto mb-4 text-gray-600 opacity-50" />
+              <p className="text-gray-600 mb-2">No investment plans yet</p>
               <p className="text-sm text-gray-500">Start with Capital Plans or Real Estate to see your investments here</p>
             </div>
           )}
@@ -1124,13 +1124,13 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
           />
           
-          <div className="relative bg-gray-800 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-200">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white">Sell {selectedHolding.coin}</h3>
+                <h3 className="text-xl font-semibold text-gray-900">Sell {selectedHolding.coin}</h3>
                 <button 
                   onClick={closeSellModal}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
                 >
                   ✕
                 </button>
@@ -1138,11 +1138,11 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
 
               <div className="space-y-4">
                 {/* Holdings Info */}
-                <div className="bg-gray-700 p-4 rounded-lg">
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-400">Available:</span>
-                      <div className="font-semibold text-white">
+                      <span className="text-gray-600">Available:</span>
+                      <div className="font-semibold text-gray-900">
                         {(typeof selectedHolding.quantity === 'number') 
                           ? `${selectedHolding.quantity.toFixed(6)} ${selectedHolding.coin}` 
                           : `0 ${selectedHolding.coin}`
@@ -1150,15 +1150,15 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-400">Sell Price:</span>
-                      <div className="font-semibold text-white">${getSellPrice(selectedHolding.coin).toFixed(2)}</div>
+                      <span className="text-gray-600">Sell Price:</span>
+                      <div className="font-semibold text-gray-900">${getSellPrice(selectedHolding.coin).toFixed(2)}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Sell Amount Input */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Amount to Sell
                   </label>
                   <div className="relative">
@@ -1168,10 +1168,10 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                       max={selectedHolding.quantity || 0}
                       value={sellAmount}
                       onChange={(e) => setSellAmount(e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="0.000000"
                     />
-                    <div className="absolute right-3 top-2 text-gray-400 text-sm">
+                    <div className="absolute right-3 top-2 text-gray-600 text-sm">
                       {selectedHolding.coin}
                     </div>
                   </div>
@@ -1182,7 +1182,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                           ? (selectedHolding.quantity * 0.25).toFixed(6) 
                           : '0'
                       )}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-green-600 hover:text-green-700"
                     >
                       25%
                     </button>
@@ -1192,7 +1192,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                           ? (selectedHolding.quantity * 0.5).toFixed(6) 
                           : '0'
                       )}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-green-600 hover:text-green-700"
                     >
                       50%
                     </button>
@@ -1202,7 +1202,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                           ? (selectedHolding.quantity * 0.75).toFixed(6) 
                           : '0'
                       )}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-green-600 hover:text-green-700"
                     >
                       75%
                     </button>
@@ -1212,7 +1212,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                           ? selectedHolding.quantity.toFixed(6) 
                           : '0'
                       )}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-green-600 hover:text-green-700"
                     >
                       Max
                     </button>
@@ -1221,10 +1221,10 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
 
                 {/* Sell Value Preview */}
                 {sellAmount && !isNaN(parseFloat(sellAmount)) && (
-                  <div className="bg-red-900/20 p-4 rounded-lg border border-red-600/30">
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="text-red-300">You will receive:</span>
-                      <span className="text-xl font-bold text-white">
+                      <span className="text-green-700">You will receive:</span>
+                      <span className="text-xl font-bold text-gray-900">
                         ${(parseFloat(sellAmount) * getSellPrice(selectedHolding.coin)).toFixed(2)}
                       </span>
                     </div>
@@ -1236,7 +1236,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                   <button
                     onClick={closeSellModal}
                     disabled={sellLoading}
-                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -1256,3 +1256,5 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
     </div>
   );
 }
+
+

@@ -69,11 +69,11 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
 
   if (loading) {
     return (
-      <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg text-white">
-        <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-blue-400">Crypto Market</h2>
+      <div className="bg-white border border-gray-200 p-4 sm:p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-green-600">Crypto Market</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="p-4 bg-gray-700 rounded-lg animate-pulse h-32" />
+            <div key={i} className="p-4 bg-gray-50 border border-gray-200 rounded-lg animate-pulse h-32" />
           ))}
         </div>
       </div>
@@ -81,14 +81,14 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
   }
 
   return (
-    <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg text-white">
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+    <div className="bg-white border border-gray-200 p-4 sm:p-6 rounded-lg shadow-lg">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
         <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-green-500">Crypto Market</h2>
-          <p className="text-xs sm:text-sm text-gray-400 mt-1">Live cryptocurrency prices</p>
+          <h2 className="text-xl sm:text-2xl font-semibold text-green-600">Crypto Market</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Live cryptocurrency prices</p>
         </div>
-        <div className="flex items-center text-xs text-green-400">
-          <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+        <div className="flex items-center text-xs text-green-600">
+          <div className="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></div>
           Live
         </div>
       </div>
@@ -104,8 +104,8 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
             const isPositive = change >= 0;
             
             return (
-              <li key={c.symbol} className={`flex justify-between items-center p-4 rounded-lg hover:bg-gray-600 transition-colors relative ${
-                c.isHot ? 'bg-gradient-to-r from-orange-900/30 to-gray-700 border-2 border-orange-500' : 'bg-gray-700'
+              <li key={c.symbol} className={`flex justify-between items-center p-4 rounded-lg hover:bg-gray-50 transition-colors relative ${
+                c.isHot ? 'bg-gradient-to-r from-orange-50 to-gray-50 border-2 border-orange-500' : 'bg-gray-50 border border-gray-200'
               }`}>
                 {c.isHot && (
                   <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
@@ -120,8 +120,8 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                   <div className="w-20">
-                    <div className="font-semibold text-lg">{c.symbol}</div>
-                    <div className="text-xs text-gray-400">{c.name}</div>
+                    <div className="font-semibold text-lg text-gray-900">{c.symbol}</div>
+                    <div className="text-xs text-gray-600">{c.name}</div>
                   </div>
                   <div className="w-32 hidden lg:block">
                     <ResponsiveContainer width="100%" height={40}>
@@ -134,8 +134,8 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
 
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
-                    <div className="font-semibold text-lg">${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                    <div className={`text-sm flex items-center justify-end ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className="font-semibold text-lg text-gray-900">${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                    <div className={`text-sm flex items-center justify-end ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
                       {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
                       {change ? `${change > 0 ? '+' : ''}${change.toFixed(2)}%` : '0.00%'}
                     </div>
@@ -143,13 +143,13 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                   <div className="flex space-x-2">
                     <button 
                       onClick={() => onSelectCoin({...c, price})} 
-                      className="bg-green-500 px-4 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold text-sm shadow-lg"
+                      className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm shadow-lg text-white"
                     >
                       Invest
                     </button>
                     <button 
                       onClick={() => onViewCoin && onViewCoin({...c, price})} 
-                      className="bg-gray-600 p-2 rounded-lg hover:bg-gray-500 transition-colors"
+                      className="bg-gray-200 p-2 rounded-lg hover:bg-gray-300 transition-colors text-gray-700"
                       title="View Details"
                     >
                       <Eye className="w-4 h-4" />
@@ -171,8 +171,8 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
           const isPositive = change >= 0;
           
           return (
-            <div key={c.symbol} className={`rounded-lg p-4 hover:bg-gray-600 transition-colors relative ${
-              c.isHot ? 'bg-gradient-to-br from-orange-900/30 to-gray-700 border-2 border-orange-500' : 'bg-gray-700'
+            <div key={c.symbol} className={`rounded-lg p-4 hover:bg-gray-100 transition-colors relative ${
+              c.isHot ? 'bg-gradient-to-br from-orange-50 to-gray-50 border-2 border-orange-500' : 'bg-gray-50 border border-gray-200'
             }`}>
               {c.isHot && (
                 <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
@@ -188,30 +188,30 @@ export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = 
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                   <div>
-                    <div className="font-semibold text-lg">{c.symbol}</div>
-                    <div className="text-xs text-gray-400">{c.name}</div>
+                    <div className="font-semibold text-lg text-gray-900">{c.symbol}</div>
+                    <div className="text-xs text-gray-600">{c.name}</div>
                   </div>
                 </div>
-                <div className={`flex items-center text-sm font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                <div className={`flex items-center text-sm font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
                   {isPositive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
                   {change ? `${change > 0 ? '+' : ''}${change.toFixed(2)}%` : '0.00%'}
                 </div>
               </div>
 
               <div className="mb-3">
-                <div className="text-2xl font-bold">${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                <div className="text-2xl font-bold text-gray-900">${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
               </div>
 
               <div className="flex space-x-2">
                 <button 
                   onClick={() => onSelectCoin({...c, price})} 
-                  className="flex-1 bg-green-500 px-3 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold text-sm shadow-lg"
+                  className="flex-1 bg-green-600 px-3 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm shadow-lg text-white"
                 >
                   Invest
                 </button>
                 <button 
                   onClick={() => onViewCoin && onViewCoin({...c, price})} 
-                  className="bg-gray-600 p-2 rounded-lg hover:bg-gray-500 transition-colors"
+                  className="bg-gray-200 p-2 rounded-lg hover:bg-gray-300 transition-colors text-gray-700"
                   title="View"
                 >
                   <Eye className="w-4 h-4" />

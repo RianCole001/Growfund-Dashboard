@@ -1,33 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Bell, Settings as SettingsIcon, Menu } from 'lucide-react';
+import { TrendingUp, TrendingDown, Settings as SettingsIcon, Menu, User } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { userAuthAPI } from './services/api';
 import { useUserAuth } from './auth/UserAuthContext';
 import { useDemo } from './demo/DemoContext';
 
-
-import Profile from './components/Profile';
-import CryptoInvestment from './components/CryptoInvestment';
-import CapitalPlan from './components/CapitalPlan';
-import RealEstate from './components/RealEstate';
 import Balances from './components/Balances';
 import Deposits from './components/Deposits';
 import Withdrawals from './components/Withdrawals';
-import SimpleChart from './components/SimpleChart';
 import Overview from './components/Overview';
 import TransactionHistory from './components/TransactionHistory';
 import Sidebar from './components/Sidebar';
-import QuickInvestButton from './components/QuickInvestButton';
-import CoinModal from './components/CoinModal';
-import TradeNow from './components/TradeNow';
-import Earn from './components/Earn';
 import Settings from './components/Settings';
 import Notifications from './components/Notifications';
 import NotificationBell from './components/NotificationBell';
 import Portfolio from './components/Portfolio';
+import Profile from './components/Profile';
+import CryptoInvestment from './components/CryptoInvestment';
+import TradeNow from './components/TradeNow';
+import Earn from './components/Earn';
+import CapitalPlan from './components/CapitalPlan';
+import RealEstate from './components/RealEstate';
 import Referrals from './components/Referrals';
+import CoinModal from './components/CoinModal';
+import SimpleChart from './components/SimpleChart';
 import { useNotifications } from './hooks/useNotifications';
 
 
@@ -71,8 +68,8 @@ export default function App() {
   // UI state
   const [page, setPage] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [profileOpenEdit, setProfileOpenEdit] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [selectedCoin, setSelectedCoin] = useState(null);
   const [coinModalOpen, setCoinModalOpen] = useState(false);
 
@@ -378,8 +375,8 @@ export default function App() {
     // Reset UI state
     setPage('Dashboard');
     setSidebarOpen(false);
-    setProfileOpenEdit(false);
     setNotificationsOpen(false);
+    setProfileOpen(false);
     setSelectedCoin(null);
     setCoinModalOpen(false);
     setLoading(false);
@@ -573,26 +570,26 @@ export default function App() {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
+      <div className="bg-white text-gray-800 min-h-screen font-sans flex flex-col">
         {/* Navigation Bar */}
-        <header className="bg-gray-800 shadow-lg sticky top-0 z-50 border-b border-gray-700">
+        <header className="bg-white shadow-md sticky top-0 z-50 border-b border-gray-200">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               {/* Logo and Desktop Nav */}
               <div className="flex items-center space-x-4 flex-1">
-                <span className="text-2xl font-bold text-green-500 flex items-center whitespace-nowrap">
+                <span className="text-2xl font-bold text-green-600 flex items-center whitespace-nowrap">
                   <TrendingUp className="w-6 h-6 mr-2" />
                   GrowFund
                 </span>
                 <nav className="hidden lg:flex space-x-1 flex-1 overflow-x-auto">
-                  {['Dashboard', 'Portfolio', 'Profile', 'Crypto', 'Trade Now', 'Earn', 'Capital Plan', 'Real Estate', 'Referrals', 'Balances', 'Deposits', 'Withdrawals', 'Transactions'].map((item) => (
+                  {['Dashboard', 'Portfolio', 'Crypto', 'Trade Now', 'Capital Plan', 'Real Estate', 'Balances', 'Deposits', 'Withdrawals'].map((item) => (
                     <button 
                       key={item} 
                       onClick={() => setPage(item === 'Capital Plan' ? 'Capital Appreciation Plan' : item)} 
                       className={`px-2 py-2 rounded-lg text-xs transition-all duration-200 whitespace-nowrap ${
                         page === item || (item === 'Capital Plan' && page === 'Capital Appreciation Plan')
-                          ? 'bg-green-500 text-white font-semibold shadow-lg' 
-                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                          ? 'bg-green-600 text-white font-semibold shadow-lg' 
+                          : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
                       {item}
@@ -604,22 +601,22 @@ export default function App() {
               {/* Right Side - Balance, Icons, Menu */}
               <div className="flex items-center space-x-3">
                 {/* Balance Display */}
-                <div className="hidden sm:flex items-center bg-gray-700 px-3 py-2 rounded-lg">
-                  <span className="text-xs text-gray-400 mr-2">Balance:</span>
-                  <span className="text-sm font-bold text-green-400">${(isDemoMode ? currentDemoBalance : balance).toLocaleString()}</span>
-                  {isDemoMode && <span className="ml-2 text-xs text-orange-400">(Demo)</span>}
+                <div className="hidden sm:flex items-center bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
+                  <span className="text-xs text-gray-600 mr-2">Balance:</span>
+                  <span className="text-sm font-bold text-green-600">${(isDemoMode ? currentDemoBalance : balance).toLocaleString()}</span>
+                  {isDemoMode && <span className="ml-2 text-xs text-orange-500">(Demo)</span>}
                 </div>
 
                 {/* Price Update Status */}
                 <div className="hidden md:flex items-center">
                   {loadingPrices ? (
-                    <div className="flex items-center text-xs text-yellow-400">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-400 mr-2"></div>
+                    <div className="flex items-center text-xs text-yellow-600">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600 mr-2"></div>
                       Updating...
                     </div>
                   ) : (
-                    <div className="text-xs text-green-400 flex items-center">
-                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                    <div className="text-xs text-green-600 flex items-center">
+                      <div className="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></div>
                       Live
                     </div>
                   )}
@@ -635,28 +632,38 @@ export default function App() {
                 {/* Settings Icon */}
                 <button
                   onClick={() => setPage('Settings')}
-                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   aria-label="Settings"
                 >
-                  <SettingsIcon className="w-5 h-5 text-gray-300" />
+                  <SettingsIcon className="w-5 h-5 text-gray-700" />
+                </button>
+
+                {/* Profile Button */}
+                <button
+                  onClick={() => setProfileOpen(true)}
+                  className="hidden sm:flex items-center space-x-2 bg-green-50 hover:bg-green-100 border border-green-200 px-3 py-2 rounded-lg transition-colors"
+                  aria-label="Profile"
+                >
+                  <User className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-600">Profile</span>
                 </button>
 
                 {/* Mobile Menu Button */}
                 <button 
                   onClick={() => setSidebarOpen(true)} 
-                  className="lg:hidden bg-green-500 rounded-lg p-2 hover:bg-green-600 transition-colors duration-200 shadow-lg"
+                  className="lg:hidden bg-green-600 rounded-lg p-2 hover:bg-green-700 transition-colors duration-200 shadow-lg"
                 >
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-5 h-5 text-white" />
                 </button>
               </div>
             </div>
 
             {/* Mobile Balance Bar */}
-            <div className="sm:hidden mt-2 flex items-center justify-between bg-gray-700 px-3 py-2 rounded-lg">
-              <span className="text-xs text-gray-400">Balance:</span>
+            <div className="sm:hidden mt-2 flex items-center justify-between bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
+              <span className="text-xs text-gray-600">Balance:</span>
               <div className="flex items-center">
-                <span className="text-sm font-bold text-green-400">${(isDemoMode ? currentDemoBalance : balance).toLocaleString()}</span>
-                {isDemoMode && <span className="ml-2 text-xs text-orange-400">(Demo)</span>}
+                <span className="text-sm font-bold text-green-600">${(isDemoMode ? currentDemoBalance : balance).toLocaleString()}</span>
+                {isDemoMode && <span className="ml-2 text-xs text-orange-500">(Demo)</span>}
               </div>
             </div>
           </div>
@@ -674,11 +681,17 @@ export default function App() {
                 loading={loadingPrices} 
                 onNavigate={(p) => setPage(p)} 
                 userName={profile?.name || user?.email || 'User'} 
-                profile={profile} 
               />
             )}
 
-            {page === 'Crypto' && <CryptoInvestment onSelectCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} prices={prices} loading={loadingPrices} onViewCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} />}
+            {page === 'Crypto' && (
+              <CryptoInvestment 
+                onSelectCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} 
+                prices={prices} 
+                loading={loadingPrices} 
+                onViewCoin={(coin) => { setSelectedCoin(coin); setCoinModalOpen(true); }} 
+              />
+            )}
 
             {page === 'Portfolio' && (
               <Portfolio 
@@ -690,25 +703,42 @@ export default function App() {
               />
             )}
 
-            {page === 'Trade Now' && <TradeNow balance={isDemoMode ? currentDemoBalance : balance} onTrade={() => {}} prices={prices} />}
-
-            {page === 'Earn' && <Earn userEmail={profile?.email} onNotify={addToast} />}
-
-            {page === 'Settings' && <Settings profile={profile} onSave={handleUpdateProfile} onNotify={addToast} />}
-
-            {page === 'Profile' && (
-              <Profile 
-                profile={profile} 
-                onSave={handleUpdateProfile} 
-                auth={{ loggedIn: isAuthenticated, user: user?.email }} 
-                onLogout={handleLogout}
-                openEdit={profileOpenEdit} 
-                onOpenHandled={() => setProfileOpenEdit(false)} 
+            {page === 'Trade Now' && (
+              <TradeNow 
+                balance={isDemoMode ? currentDemoBalance : balance} 
+                onTrade={() => {}} 
+                prices={prices} 
               />
             )}
 
-            <QuickInvestButton onClick={() => setPage('Capital Appreciation Plan')} />
+            {page === 'Capital Appreciation Plan' && (
+              <div className="space-y-4">
+                <CapitalPlan 
+                  investments={isDemoMode ? currentDemoInvestments : investments} 
+                  balance={isDemoMode ? currentDemoBalance : balance} 
+                  onInvest={handleInvest} 
+                  onNotify={addToast} 
+                />
+                <SimpleChart investments={isDemoMode ? currentDemoInvestments : investments} />
+              </div>
+            )}
 
+            {page === 'Real Estate' && (
+              <RealEstate 
+                balance={isDemoMode ? currentDemoBalance : balance} 
+                onInvest={handleInvest} 
+              />
+            )}
+
+            {page === 'Settings' && <Settings profile={profile} onSave={handleUpdateProfile} onNotify={addToast} />}
+
+            {page === 'Balances' && <Balances balance={isDemoMode ? currentDemoBalance : balance} investments={isDemoMode ? currentDemoInvestments : investments} />}
+
+            {page === 'Deposits' && <Deposits onDeposit={handleDeposit} />}
+
+            {page === 'Withdrawals' && <Withdrawals balance={isDemoMode ? currentDemoBalance : balance} onWithdraw={handleWithdraw} />}
+
+            {/* Coin Modal */}
             {coinModalOpen && (
               <CoinModal 
                 coin={selectedCoin} 
@@ -732,6 +762,18 @@ export default function App() {
               />
             )}
 
+            {/* Profile Modal */}
+            {profileOpen && (
+              <Profile 
+                profile={profile} 
+                onSave={handleUpdateProfile} 
+                auth={{ loggedIn: isAuthenticated, user: user?.email }} 
+                onLogout={handleLogout}
+                onClose={() => setProfileOpen(false)}
+                transactions={isDemoMode ? currentDemoTransactions : transactions}
+              />
+            )}
+
             {/* Mobile Sidebar */}
             {sidebarOpen && (
               <div className="fixed inset-0 z-50">
@@ -739,57 +781,40 @@ export default function App() {
                   onClick={() => setSidebarOpen(false)} 
                   className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
                 />
-                <div className="absolute left-0 top-0 h-full w-72 bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out">
+                <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-out">
                   <div className="p-4 h-full">
-                    <Sidebar page={page} setPage={setPage} onClose={() => setSidebarOpen(false)} />
+                    <Sidebar 
+                      page={page} 
+                      setPage={setPage} 
+                      onClose={() => setSidebarOpen(false)} 
+                      onLogout={handleLogout}
+                      onOpenProfile={() => setProfileOpen(true)}
+                    />
                   </div>
                 </div>
               </div>
             )}
-
-            {page === 'Capital Appreciation Plan' && (
-              <div className="space-y-4">
-                <CapitalPlan investments={isDemoMode ? currentDemoInvestments : investments} balance={isDemoMode ? currentDemoBalance : balance} onInvest={handleInvest} onNotify={addToast} />
-                <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-white">
-                  <h3 className="text-lg font-semibold text-green-500 mb-3">Your Investments</h3>
-                  {(isDemoMode ? currentDemoInvestments : investments).length === 0 && <div className="text-sm text-gray-300">No investments yet.</div>}
-                </div>
-                <SimpleChart investments={isDemoMode ? currentDemoInvestments : investments} />
-              </div>
-            )}
-
-            {page === 'Real Estate' && <RealEstate balance={isDemoMode ? currentDemoBalance : balance} onInvest={handleInvest} />}
-
-            {page === 'Referrals' && <Referrals />}
-
-            {page === 'Balances' && <Balances balance={isDemoMode ? currentDemoBalance : balance} investments={isDemoMode ? currentDemoInvestments : investments} />}
-
-            {page === 'Deposits' && <Deposits onDeposit={handleDeposit} />}
-
-            {page === 'Withdrawals' && <Withdrawals balance={isDemoMode ? currentDemoBalance : balance} onWithdraw={handleWithdraw} />}
-
-            {page === 'Transactions' && <TransactionHistory transactions={isDemoMode ? currentDemoTransactions : transactions} />}
           </div>
 
           {/* Sidebar */}
-          <aside className="w-full lg:w-64 bg-gray-800 p-4 rounded-lg overflow-y-auto mt-4 lg:mt-0 hidden md:block">
-            <h3 className="text-xl font-semibold mb-4 text-blue-400">Watchlist</h3>
+          <aside className="w-full lg:w-64 bg-white border border-gray-200 p-4 rounded-lg overflow-y-auto mt-4 lg:mt-0 hidden md:block shadow-sm">
+            <h3 className="text-xl font-semibold mb-4 text-green-600">Watchlist</h3>
             <ul className="space-y-2 mb-4">
               {watchlistData.map((item) => {
                 const isPositive = item.change24h >= 0;
                 return (
-                  <li key={item.symbol} className="flex justify-between items-center p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors duration-200">
+                  <li key={item.symbol} className="flex justify-between items-center p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200">
                     <div className="flex-1">
-                      <div className="font-semibold text-sm">{item.symbol}</div>
-                      <div className="text-xs text-gray-400">{item.name}</div>
-                      <div className="text-sm font-bold text-blue-300 mt-1">${item.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                      <div className="font-semibold text-sm text-gray-800">{item.symbol}</div>
+                      <div className="text-xs text-gray-500">{item.name}</div>
+                      <div className="text-sm font-bold text-green-600 mt-1">${item.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
                     </div>
-                    <div className={`flex flex-col items-end ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className={`flex flex-col items-end ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
                       <div className="flex items-center">
                         {isPositive ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
                         <span className="text-sm font-semibold">{isPositive ? '+' : ''}{item.change24h.toFixed(2)}%</span>
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">24h</div>
+                      <div className="text-xs text-gray-500 mt-1">24h</div>
                     </div>
                   </li>
                 );

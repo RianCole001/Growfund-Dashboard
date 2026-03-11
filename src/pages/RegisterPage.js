@@ -188,18 +188,21 @@ export default function RegisterPage() {
   const passwordStrength = getPasswordStrength();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
-      <div className="max-w-md w-full bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-semibold text-blue-400 mb-2">Create an account</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-white p-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold text-green-600 mb-2">Create Account</h2>
+          <p className="text-gray-600">Join GrowFund today</p>
+        </div>
         
         {/* Referral Bonus Banner */}
         {referralBonus && (
-          <div className="bg-green-900/30 border border-green-600 rounded-lg p-3 mb-4 flex items-start space-x-2">
-            <Gift className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start space-x-3">
+            <Gift className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-green-400">Referral Bonus!</p>
-              <p className="text-xs text-green-300">{referralBonus.message}</p>
-              <p className="text-xs text-green-300 mt-1">Referrer: <span className="font-mono">{referralBonus.code}</span></p>
+              <p className="text-sm font-semibold text-green-700">Referral Bonus!</p>
+              <p className="text-xs text-green-600">{referralBonus.message}</p>
+              <p className="text-xs text-green-600 mt-1">Referrer: <span className="font-mono font-semibold">{referralBonus.code}</span></p>
             </div>
           </div>
         )}
@@ -207,7 +210,7 @@ export default function RegisterPage() {
         <form onSubmit={submit} className="space-y-4">
           {/* First Name */}
           <div>
-            <label className="text-sm text-gray-300 block mb-1">First Name</label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">First Name</label>
             <input 
               type="text"
               value={firstName} 
@@ -215,15 +218,16 @@ export default function RegisterPage() {
                 setFirstName(e.target.value);
                 if (errors.firstName) setErrors({ ...errors, firstName: '' });
               }}
-              className={`w-full bg-gray-700 p-2.5 rounded border ${errors.firstName ? 'border-red-500' : 'border-gray-600'} focus:border-blue-500 focus:outline-none transition`}
+              className={`w-full bg-white border ${errors.firstName ? 'border-red-500' : 'border-gray-300'} p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition text-gray-800`}
               placeholder="John"
+              required
             />
-            {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName}</p>}
+            {errors.firstName && <p className="text-red-600 text-xs mt-1">{errors.firstName}</p>}
           </div>
 
           {/* Last Name */}
           <div>
-            <label className="text-sm text-gray-300 block mb-1">Last Name</label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">Last Name</label>
             <input 
               type="text"
               value={lastName} 
@@ -231,15 +235,16 @@ export default function RegisterPage() {
                 setLastName(e.target.value);
                 if (errors.lastName) setErrors({ ...errors, lastName: '' });
               }}
-              className={`w-full bg-gray-700 p-2.5 rounded border ${errors.lastName ? 'border-red-500' : 'border-gray-600'} focus:border-blue-500 focus:outline-none transition`}
+              className={`w-full bg-white border ${errors.lastName ? 'border-red-500' : 'border-gray-300'} p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition text-gray-800`}
               placeholder="Doe"
+              required
             />
-            {errors.lastName && <p className="text-red-400 text-xs mt-1">{errors.lastName}</p>}
+            {errors.lastName && <p className="text-red-600 text-xs mt-1">{errors.lastName}</p>}
           </div>
 
           {/* Email */}
           <div>
-            <label className="text-sm text-gray-300 block mb-1">Email</label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">Email</label>
             <input 
               type="email"
               value={email} 
@@ -247,15 +252,16 @@ export default function RegisterPage() {
                 setEmail(e.target.value);
                 if (errors.email) setErrors({ ...errors, email: '' });
               }}
-              className={`w-full bg-gray-700 p-2.5 rounded border ${errors.email ? 'border-red-500' : 'border-gray-600'} focus:border-blue-500 focus:outline-none transition`}
+              className={`w-full bg-white border ${errors.email ? 'border-red-500' : 'border-gray-300'} p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition text-gray-800`}
               placeholder="john@example.com"
+              required
             />
-            {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+            {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email}</p>}
           </div>
 
           {/* Password */}
           <div>
-            <label className="text-sm text-gray-300 block mb-1">Password</label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">Password</label>
             <input 
               type="password"
               value={password} 
@@ -263,16 +269,17 @@ export default function RegisterPage() {
                 setPassword(e.target.value);
                 if (errors.password) setErrors({ ...errors, password: '' });
               }}
-              className={`w-full bg-gray-700 p-2.5 rounded border ${errors.password ? 'border-red-500' : 'border-gray-600'} focus:border-blue-500 focus:outline-none transition`}
+              className={`w-full bg-white border ${errors.password ? 'border-red-500' : 'border-gray-300'} p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition text-gray-800`}
               placeholder="••••••••"
+              required
             />
             {password && (
               <div className="mt-2">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gray-400">Strength:</span>
+                  <span className="text-xs text-gray-600">Strength:</span>
                   <span className={`text-xs font-semibold ${passwordStrength.color.replace('bg-', 'text-')}`}>{passwordStrength.label}</span>
                 </div>
-                <div className="w-full bg-gray-600 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full transition-all ${passwordStrength.color}`}
                     style={{ width: `${passwordStrength.strength}%` }}
@@ -280,15 +287,15 @@ export default function RegisterPage() {
                 </div>
               </div>
             )}
-            {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
-            <p className="text-xs text-gray-400 mt-2">
-              Password must contain: uppercase, lowercase, number, special character (!@#$%^&amp;*()_+-=[]{}|;:,.)
+            {errors.password && <p className="text-red-600 text-xs mt-1">{errors.password}</p>}
+            <p className="text-xs text-gray-500 mt-2">
+              Must contain: uppercase, lowercase, number, special character
             </p>
           </div>
 
           {/* Confirm Password */}
           <div>
-            <label className="text-sm text-gray-300 block mb-1">Confirm Password</label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">Confirm Password</label>
             <input 
               type="password"
               value={password2} 
@@ -296,27 +303,28 @@ export default function RegisterPage() {
                 setPassword2(e.target.value);
                 if (errors.password2) setErrors({ ...errors, password2: '' });
               }}
-              className={`w-full bg-gray-700 p-2.5 rounded border ${errors.password2 ? 'border-red-500' : 'border-gray-600'} focus:border-blue-500 focus:outline-none transition`}
+              className={`w-full bg-white border ${errors.password2 ? 'border-red-500' : 'border-gray-300'} p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition text-gray-800`}
               placeholder="••••••••"
+              required
             />
-            {errors.password2 && <p className="text-red-400 text-xs mt-1">{errors.password2}</p>}
+            {errors.password2 && <p className="text-red-600 text-xs mt-1">{errors.password2}</p>}
           </div>
 
           {/* Submit Button */}
           <button 
             type="submit" 
             disabled={loading} 
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2.5 rounded font-semibold transition-colors mt-6"
+            className="w-full bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-3 rounded-lg font-semibold transition-colors mt-6 shadow-md"
           >
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
         {/* Login Link */}
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-400">
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-semibold">
+            <Link to="/login" className="text-green-600 hover:text-green-700 font-semibold transition-colors">
               Sign in
             </Link>
           </p>

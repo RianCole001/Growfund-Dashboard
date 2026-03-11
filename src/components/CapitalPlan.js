@@ -23,10 +23,10 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
         key: 'basic', 
         name: 'Basic', 
         rate: 20, 
-        min: settings.capitalBasicMin || 100, 
+        min: settings.capitalBasicMin || 30, 
         desc: 'Steady growth with 20% monthly returns. Perfect for beginners.',
         icon: Shield,
-        color: 'from-cyan-400 via-blue-500 to-blue-600',
+        color: 'from-green-400 to-green-600',
         badge: '🛡️ Safe',
         features: ['20% Monthly', 'Low Risk', 'Flexible Terms']
       },
@@ -34,10 +34,10 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
         key: 'standard', 
         name: 'Standard', 
         rate: 30, 
-        min: settings.capitalStandardMin || 500, 
+        min: settings.capitalStandardMin || 60, 
         desc: 'Balanced growth with 30% monthly returns. Most popular choice.',
         icon: Target,
-        color: 'from-purple-400 via-pink-500 to-purple-600',
+        color: 'from-green-500 to-emerald-600',
         badge: '⚡ Popular',
         features: ['30% Monthly', 'Balanced Risk', 'Monthly Reports']
       },
@@ -45,10 +45,10 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
         key: 'advance', 
         name: 'Advance', 
         rate: 40, 
-        min: settings.capitalAdvanceMin || 2000, 
+        min: settings.capitalAdvanceMin || 100, 
         desc: 'Maximum growth with 40%, 50%, or 60% monthly returns.',
         icon: Zap,
-        color: 'from-orange-400 via-red-500 to-pink-600',
+        color: 'from-emerald-500 to-green-700',
         badge: '🚀 Premium',
         features: ['40-60% Monthly', 'High Returns', 'Priority Support']
       },
@@ -56,7 +56,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   }, [settings.capitalBasicMin, settings.capitalStandardMin, settings.capitalAdvanceMin]);
 
   const [selected, setSelected] = useState(plans[0].key);
-  const [amount, setAmount] = useState(100); // Will be updated by useEffect
+  const [amount, setAmount] = useState(30); // Will be updated by useEffect
   const [months, setMonths] = useState(6);
   const [advanceRate, setAdvanceRate] = useState(40);
   const [showOnboard, setShowOnboard] = useState(false);
@@ -209,15 +209,15 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               onClick={() => setSelected(p.key)}
               onMouseEnter={() => setHoveredPlan(p.key)}
               onMouseLeave={() => setHoveredPlan(null)}
-              className={`relative bg-gray-800 rounded-lg p-5 cursor-pointer transition-all ${
+              className={`relative bg-white border border-gray-200 rounded-lg p-5 cursor-pointer transition-all shadow-md ${
                 isSelected 
                   ? 'ring-2 ring-green-500 shadow-lg' 
-                  : 'hover:shadow-md hover:bg-gray-750'
+                  : 'hover:shadow-lg hover:border-gray-300'
               }`}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-0 ${isSelected ? 'opacity-5' : ''} rounded-lg transition-opacity`}></div>
+              <div className={`absolute inset-0 bg-gradient-to-br ${p.color} opacity-0 ${isSelected ? 'opacity-10' : ''} rounded-lg transition-opacity`}></div>
               
-              <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+              <div className="absolute -top-2 -right-2 bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
                 {p.badge}
               </div>
 
@@ -227,32 +227,32 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 </div>
                 
                 <div className="mb-3">
-                  <h3 className="text-lg font-bold text-white mb-1">{p.name}</h3>
-                  <div className="text-3xl font-bold text-green-500">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{p.name}</h3>
+                  <div className="text-3xl font-bold text-green-600">
                     {p.key === 'advance' ? '40-60%' : p.rate}%
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">Monthly Return</div>
+                  <div className="text-xs text-gray-600 mt-1">Monthly Return</div>
                 </div>
 
-                <p className="text-sm text-gray-400 mb-4">{p.desc}</p>
+                <p className="text-sm text-gray-600 mb-4">{p.desc}</p>
 
                 <div className="space-y-2 mb-4">
                   {p.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center text-xs text-gray-300">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></div>
+                    <div key={idx} className="flex items-center text-xs text-gray-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-600 mr-2"></div>
                       {feature}
                     </div>
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                   <span className="text-xs text-gray-500">Min. ${p.min}</span>
                   <button 
                     onClick={(e) => { e.stopPropagation(); openConfirm(amount, p); }}
                     className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                       isSelected 
-                        ? 'bg-green-500 text-white hover:bg-green-600 shadow-lg' 
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     {isSelected ? 'Invest Now' : 'Select'}
@@ -265,18 +265,18 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
       </div>
 
       {/* Growth Visualization */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h3 className="text-xl font-semibold text-white flex items-center mb-2">
-              <Icon className="w-5 h-5 mr-2 text-green-500" />
+            <h3 className="text-xl font-semibold text-gray-900 flex items-center mb-2">
+              <Icon className="w-5 h-5 mr-2 text-green-600" />
               Growth Projection
             </h3>
-            <p className="text-sm text-gray-400">Monthly compound growth with {selectedPlan.name} Plan</p>
+            <p className="text-sm text-gray-600">Monthly compound growth with {selectedPlan.name} Plan</p>
           </div>
-          <div className="mt-4 sm:mt-0 bg-gray-700 px-5 py-3 rounded-lg border border-gray-600">
-            <div className="text-xs text-gray-400 mb-1">Projected Value</div>
-            <div className="text-xl font-bold text-white">${finalValue.toLocaleString()}</div>
+          <div className="mt-4 sm:mt-0 bg-gray-50 border border-gray-200 px-5 py-3 rounded-lg">
+            <div className="text-xs text-gray-600 mb-1">Projected Value</div>
+            <div className="text-xl font-bold text-gray-900">${finalValue.toLocaleString()}</div>
           </div>
         </div>
 
@@ -330,16 +330,16 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
           </div>
 
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
-              <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
-                <DollarSign className="w-4 h-4 mr-2 text-green-400" />
+            <div className="bg-gray-50 border border-gray-200 p-5 rounded-xl">
+              <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                <DollarSign className="w-4 h-4 mr-2 text-green-600" />
                 Investment Amount
               </label>
               <input 
                 type="number" 
                 value={amount} 
                 onChange={(e) => setAmount(Number(e.target.value))} 
-                className="w-full bg-gray-800 rounded-xl p-4 text-2xl font-bold text-center focus:ring-4 focus:ring-blue-500 focus:outline-none transition-all" 
+                className="w-full bg-white border border-gray-300 text-gray-900 rounded-xl p-4 text-2xl font-bold text-center focus:ring-2 focus:ring-green-500 focus:outline-none transition-all" 
               />
               <div className="flex justify-between mt-3 text-xs">
                 <span className="text-gray-500">Min: ${selectedPlan.min}</span>
@@ -350,7 +350,7 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                   <button
                     key={percent}
                     onClick={() => setAmount(Math.round(balance * percent / 100))}
-                    className="bg-gray-600 hover:bg-green-500 py-2 rounded-lg text-xs font-bold transition-all transform hover:scale-105"
+                    className="bg-white border border-gray-300 hover:bg-green-600 hover:text-white hover:border-green-600 text-gray-700 py-2 rounded-lg text-xs font-bold transition-all"
                   >
                     {percent}%
                   </button>
@@ -358,9 +358,9 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               </div>
             </div>
 
-            <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
-              <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
-                <Calendar className="w-4 h-4 mr-2 text-purple-400" />
+            <div className="bg-gray-50 border border-gray-200 p-5 rounded-xl">
+              <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                <Calendar className="w-4 h-4 mr-2 text-green-600" />
                 Investment Period
               </label>
               <input 
@@ -369,18 +369,18 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                 max={60} 
                 value={months} 
                 onChange={(e) => setMonths(Number(e.target.value))} 
-                className="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-600" 
+                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600" 
               />
               <div className="flex justify-between mt-3">
-                <span className="text-2xl font-black text-purple-400">{months}</span>
-                <span className="text-sm text-gray-400">{months === 1 ? 'Month' : 'Months'}</span>
+                <span className="text-2xl font-black text-green-600">{months}</span>
+                <span className="text-sm text-gray-600">{months === 1 ? 'Month' : 'Months'}</span>
               </div>
             </div>
 
             {selected === 'advance' && (
-              <div className="bg-gray-700/50 backdrop-blur-sm p-5 rounded-xl border border-gray-600">
-                <label className="flex items-center text-sm font-semibold text-gray-300 mb-3">
-                  <Zap className="w-4 h-4 mr-2 text-yellow-400" />
+              <div className="bg-gray-50 border border-gray-200 p-5 rounded-xl">
+                <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                  <Zap className="w-4 h-4 mr-2 text-green-600" />
                   Growth Rate
                 </label>
                 <div className="flex gap-2">
@@ -390,8 +390,8 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
                       onClick={() => setAdvanceRate(rate)}
                       className={`flex-1 py-2 rounded-lg font-bold transition-all ${
                         advanceRate === rate
-                          ? 'bg-yellow-600 text-white'
-                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       {rate}%
@@ -401,22 +401,22 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
               </div>
             )}
 
-            <div className="bg-gray-700 border border-gray-600 p-5 rounded-lg">
+            <div className="bg-green-50 border border-green-200 p-5 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-400">Expected Profit</span>
-                <Award className="w-5 h-5 text-green-400" />
+                <span className="text-sm font-medium text-gray-700">Expected Profit</span>
+                <Award className="w-5 h-5 text-green-600" />
               </div>
-              <div className="text-2xl font-bold text-green-400 mb-1">
+              <div className="text-2xl font-bold text-green-600 mb-1">
                 +${totalGain.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-gray-600">
                 {percentageGain}% growth over {months} {months === 1 ? 'month' : 'months'}
               </div>
             </div>
 
             <button 
               onClick={() => openConfirm(amount, selectedPlan)} 
-              className="w-full bg-green-500 hover:bg-green-600 px-6 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg"
+              className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-lg font-semibold text-lg transition-colors shadow-md"
             >
               Invest ${Math.round(amount).toLocaleString()}
             </button>
@@ -539,9 +539,9 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
         </div>
       )}
 
-      <div className="text-center bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <p className="text-xs text-gray-400">
-          <span className="font-medium">Disclaimer:</span> Projections are for illustrative purposes. Actual returns may vary based on market conditions.
+      <div className="text-center bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
+        <p className="text-xs text-gray-600">
+          <span className="font-medium text-gray-900">Disclaimer:</span> Projections are for illustrative purposes. Actual returns may vary based on market conditions.
         </p>
       </div>
     </div>
