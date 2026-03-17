@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Check, X, Clock, DollarSign } from 'lucide-react';
+import { Search, Check, X, Clock, DollarSign, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminAuthAPI } from '../services/api';
 
@@ -10,246 +10,210 @@ export default function AdminDeposits() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [actionLoading, setActionLoading] = useState({});
 
-  // Fetch deposits from backend
-  useEffect(() => {
-    fetchDeposits();
-  }, []);
+  useEffect(() => { fetchDeposits(); }, []);
 
   const fetchDeposits = async () => {
     try {
       setLoading(true);
       const response = await adminAuthAPI.getDeposits();
       setDeposits(response.data.data || []);
-    } catch (error) {
-      toast.error('Failed to load deposits');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error('Failed to load deposits'); }
+    finally { setLoading(false); }
   };
 
-  const handleApprove = async (depositId) => {
-    setActionLoading({ ...actionLoading, [depositId]: 'approving' });
+  const handleApprove = async (id) => {
+    setActionLoading(p => ({ ...p, [id]: 'approving' }));
     try {
-      // TODO: Replace with actual API endpoint
-      // await adminAuthAPI.approveDeposit(depositId);
-      
-      // Update local state
-      setDeposits(deposits.map(dep => 
-        dep.id === depositId ? { ...dep, status: 'approved' } : dep
-      ));
-      
-      toast.success('Deposit approved successfully');
-    } catch (error) {
-      toast.error('Failed to approve deposit');
-      console.error(error);
-    } finally {
-      setActionLoading({ ...actionLoading, [depositId]: null });
-    }
+      setDeposits(d => d.map(dep => dep.id === id ? { ...dep, status: 'approved' } : dep));
+      toast.success('Deposit approved');
+    } catch { toast.error('Failed to approve'); }
+    finally { setActionLoading(p => ({ ...p, [id]: null })); }
   };
 
-  const handleReject = async (depositId) => {
-    const reason = prompt('Enter rejection reason:');
+  const handleReject = async (id) => {
+    const reason = prompt('Rejection reason:');
     if (!reason) return;
-
-    setActionLoading({ ...actionLoading, [depositId]: 'rejecting' });
+    setActionLoading(p => ({ ...p, [id]: 'rejecting' }));
     try {
-      // TODO: Replace with actual API endpoint
-      // await adminAuthAPI.rejectDeposit(depositId, reason);
-      
-      // Update local state
-      setDeposits(deposits.map(dep => 
-        dep.id === depositId ? { ...dep, status: 'rejected', rejection_reason: reason } : dep
-      ));
-      
+      setDeposits(d => d.map(dep => dep.id === id ? { ...dep, status: 'rejected' } : dep));
       toast.success('Deposit rejected');
-    } catch (error) {
-      toast.error('Failed to reject deposit');
-      console.error(error);
-    } finally {
-      setActionLoading({ ...actionLoading, [depositId]: null });
-    }
+    } catch { toast.error('Failed to reject'); }
+    finally { setActionLoading(p => ({ ...p, [id]: null })); }
   };
 
-  const filteredDeposits = deposits.filter(dep => {
-    const matchesSearch = dep.user.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         dep.reference.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || dep.status === filterStatus;
-    return matchesSearch && matchesFilter;
+  const filtered = deposits.filter(dep => {
+    const s = dep.user?.toLowerCase().includes(searchTerm.toLowerCase()) || dep.reference?.toLowerCase().includes(searchTerm.toLowerCase());
+    const f = filterStatus === 'all' || dep.status === filterStatus;
+    return s && f;
   });
 
   const pendingCount = deposits.filter(d => d.status === 'pending').length;
   const approvedCount = deposits.filter(d => d.status === 'approved').length;
-  const totalPending = deposits.filter(d => d.status === 'pending').reduce((sum, d) => sum + d.amount, 0);
+  const totalPending = deposits.filter(d => d.status === 'pending').reduce((s, d) => s + d.amount, 0);
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      pending: 'bg-yellow-900/30 text-yellow-400 border-yellow-500/30',
-      approved: 'bg-green-900/30 text-green-400 border-green-500/30',
-      rejected: 'bg-red-900/30 text-red-400 border-red-500/30'
-    };
-    return styles[status] || 'bg-gray-700 text-gray-300';
-  };
+  const statusBadge = (status) => ({ pending: 'bg-yellow-100 text-yellow-700', approved: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-700' }[status] || 'bg-gray-100 text-gray-600');
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-white">Deposit Management</h2>
-        <p className="text-sm text-gray-400 mt-1">Review and approve user deposits</p>
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Deposit Management</h2>
+          <p className="text-sm text-gray-500 mt-1">Review and approve user deposits</p>
+        </div>
+        <button onClick={fetchDeposits} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start sm:self-auto">
+          <RefreshCw className="w-4 h-4" /> Refresh
+        </button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-yellow-900/30 to-gray-800 p-6 rounded-lg border border-yellow-500/30">
+        <div className="bg-white rounded-xl shadow-sm border border-yellow-100 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-gray-400 mb-2">Pending Deposits</div>
-              <div className="text-3xl font-bold text-white">{pendingCount}</div>
-              <div className="text-sm text-yellow-400 mt-1">${totalPending.toLocaleString()} total</div>
+              <div className="text-xs text-gray-500 mb-1">Pending</div>
+              <div className="text-2xl font-bold text-gray-900">{pendingCount}</div>
+              <div className="text-xs text-yellow-600 mt-1">${totalPending.toLocaleString()} total</div>
             </div>
-            <Clock className="w-12 h-12 text-yellow-500/30" />
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-yellow-600" />
+            </div>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-green-900/30 to-gray-800 p-6 rounded-lg border border-green-500/30">
+        <div className="bg-white rounded-xl shadow-sm border border-green-100 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-gray-400 mb-2">Approved Today</div>
-              <div className="text-3xl font-bold text-white">{approvedCount}</div>
+              <div className="text-xs text-gray-500 mb-1">Approved</div>
+              <div className="text-2xl font-bold text-gray-900">{approvedCount}</div>
             </div>
-            <Check className="w-12 h-12 text-green-500/30" />
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <Check className="w-5 h-5 text-green-600" />
+            </div>
           </div>
         </div>
-        <div className="bg-gray-800 p-6 rounded-lg">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-gray-400 mb-2">Total Deposits</div>
-              <div className="text-3xl font-bold text-white">{deposits.length}</div>
+              <div className="text-xs text-gray-500 mb-1">Total</div>
+              <div className="text-2xl font-bold text-gray-900">{deposits.length}</div>
             </div>
-            <DollarSign className="w-12 h-12 text-blue-500/30" />
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-gray-600" />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search deposits..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" placeholder="Search deposits..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
-          <div className="flex space-x-2">
-            {['all', 'pending', 'approved', 'rejected'].map(status => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                  filterStatus === status
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+          <div className="flex gap-2 flex-wrap">
+            {['all','pending','approved','rejected'].map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${filterStatus === s ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Deposits Table */}
-      {filteredDeposits.length === 0 ? (
-        <div className="bg-gray-800 rounded-lg shadow-lg p-12 text-center">
-          <p className="text-gray-400">
-            {searchTerm || filterStatus !== 'all' 
-              ? 'No deposits match your filters' 
-              : 'No deposits yet. Deposit requests will appear here.'}
-          </p>
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 text-sm">
+          {searchTerm || filterStatus !== 'all' ? 'No deposits match your filters' : 'No deposits yet.'}
         </div>
       ) : (
-        <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* Desktop */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-700">
+              <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Method</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Reference</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                  {['User','Amount','Method','Reference','Date','Status','Actions'].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-700">
-                {filteredDeposits.map((deposit) => (
-                  <tr key={deposit.id} className="hover:bg-gray-700/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-white">{deposit.user}</div>
-                      <div className="text-xs text-gray-400">ID: {deposit.user_id}</div>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((dep) => (
+                  <tr key={dep.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="text-sm font-medium text-gray-900">{dep.user}</div>
+                      <div className="text-xs text-gray-500">ID: {dep.user_id}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-green-400">${deposit.amount.toLocaleString()}</div>
+                    <td className="px-5 py-4 text-sm font-bold text-green-600">${dep.amount?.toLocaleString()}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600">{dep.method}</td>
+                    <td className="px-5 py-4 text-xs font-mono text-gray-500">{dep.reference}</td>
+                    <td className="px-5 py-4 text-sm text-gray-500">{new Date(dep.created_at).toLocaleDateString()}</td>
+                    <td className="px-5 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusBadge(dep.status)}`}>{dep.status}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {deposit.method}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-mono text-gray-300">{deposit.reference}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {new Date(deposit.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(deposit.status)}`}>
-                        {deposit.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {deposit.status === 'pending' && (
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleApprove(deposit.id)}
-                            disabled={actionLoading[deposit.id]}
-                            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1 rounded-lg flex items-center space-x-1 transition-colors"
-                          >
-                            <Check className="w-4 h-4" />
-                            <span>{actionLoading[deposit.id] === 'approving' ? 'Approving...' : 'Approve'}</span>
+                    <td className="px-5 py-4">
+                      {dep.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button onClick={() => handleApprove(dep.id)} disabled={actionLoading[dep.id]}
+                            className="flex items-center gap-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                            <Check className="w-3 h-3" />
+                            {actionLoading[dep.id] === 'approving' ? 'Approving...' : 'Approve'}
                           </button>
-                          <button
-                            onClick={() => handleReject(deposit.id)}
-                            disabled={actionLoading[deposit.id]}
-                            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-3 py-1 rounded-lg flex items-center space-x-1 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                            <span>{actionLoading[deposit.id] === 'rejecting' ? 'Rejecting...' : 'Reject'}</span>
+                          <button onClick={() => handleReject(dep.id)} disabled={actionLoading[dep.id]}
+                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                            <X className="w-3 h-3" />
+                            Reject
                           </button>
                         </div>
                       )}
-                      {deposit.status === 'approved' && (
-                        <span className="text-green-400 text-xs">✓ Approved</span>
-                      )}
-                      {deposit.status === 'rejected' && (
-                        <span className="text-red-400 text-xs">✗ Rejected</span>
-                      )}
+                      {dep.status === 'approved' && <span className="text-green-600 text-xs font-medium">✓ Approved</span>}
+                      {dep.status === 'rejected' && <span className="text-red-500 text-xs font-medium">✗ Rejected</span>}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {filtered.map((dep) => (
+              <div key={dep.id} className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <div className="font-medium text-gray-900 text-sm">{dep.user}</div>
+                    <div className="text-xs text-gray-500 font-mono">{dep.reference}</div>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusBadge(dep.status)}`}>{dep.status}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+                  <div className="bg-green-50 rounded-lg p-2">
+                    <div className="text-xs text-gray-500">Amount</div>
+                    <div className="font-bold text-green-600">${dep.amount?.toLocaleString()}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <div className="text-xs text-gray-500">Method</div>
+                    <div className="font-medium text-gray-900">{dep.method}</div>
+                  </div>
+                </div>
+                {dep.status === 'pending' && (
+                  <div className="flex gap-2">
+                    <button onClick={() => handleApprove(dep.id)} disabled={actionLoading[dep.id]}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-xs font-medium">Approve</button>
+                    <button onClick={() => handleReject(dep.id)} disabled={actionLoading[dep.id]}
+                      className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg text-xs font-medium">Reject</button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

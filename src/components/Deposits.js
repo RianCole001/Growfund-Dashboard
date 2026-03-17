@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
-import { Shield, Copy, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Copy, Check, MapPin, Loader } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import useGeoLocation from '../hooks/useGeoLocation';
 import toast from 'react-hot-toast';
 
 export default function Deposits({ onDeposit }) {
   const { settings } = useSettings();
+  const { detectedCountry, detecting } = useGeoLocation();
   const [amount, setAmount] = useState('');
   const [country, setCountry] = useState('Ghana');
   const [method, setMethod] = useState('');
   const [copied, setCopied] = useState(false);
+  const [autoDetected, setAutoDetected] = useState(false);
+
+  // Auto-set country once detection completes
+  useEffect(() => {
+    if (!detecting && detectedCountry) {
+      setCountry(detectedCountry);
+      setMethod('');
+      setAutoDetected(true);
+    }
+  }, [detecting, detectedCountry]);
 
   // Form fields
   const [accountName, setAccountName] = useState('');
@@ -103,7 +115,7 @@ export default function Deposits({ onDeposit }) {
   const currentMethod = currentCountry.methods.find(m => m.id === method);
 
   // Platform wallet address
-  const platformWallet = 'TSS2nvk8vtul6kaxuw7dk8wtdel5x7s';
+  const platformWallet = 'TNGbuN1FPWJDsxd9wtoyoAqeRvCVuPuDXm';
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -202,9 +214,24 @@ export default function Deposits({ onDeposit }) {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Select Country
             </label>
+
+            {/* Auto-detection status banner */}
+            {detecting && (
+              <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-2">
+                <Loader className="w-4 h-4 animate-spin flex-shrink-0" />
+                <span>Detecting your location...</span>
+              </div>
+            )}
+            {!detecting && autoDetected && (
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-2">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span>Location detected — showing payment methods for <strong>{country}</strong>. You can change this below.</span>
+              </div>
+            )}
+
             <select
               value={country}
-              onChange={(e) => handleCountryChange(e.target.value)}
+              onChange={(e) => { handleCountryChange(e.target.value); setAutoDetected(false); }}
               className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none"
             >
               {countries.map((c) => (
@@ -220,16 +247,17 @@ export default function Deposits({ onDeposit }) {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Deposit Amount
             </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg font-semibold">
+            <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-green-500 focus-within:border-green-500 transition-all overflow-hidden">
+              <span className="pl-4 pr-2 text-gray-500 text-lg font-semibold whitespace-nowrap shrink-0">
                 {currentCountry.symbol}
               </span>
+              <span className="text-gray-300 text-lg shrink-0">|</span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="100.00"
-                className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-lg pl-12 pr-4 py-3 text-lg font-semibold focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none transition-all"
+                className="flex-1 bg-transparent text-gray-900 px-3 py-3 text-lg font-semibold focus:outline-none min-w-0"
               />
             </div>
           </div>

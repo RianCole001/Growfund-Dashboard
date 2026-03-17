@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 
 export default function Withdrawals({ balance, onWithdraw }) {
   const { settings } = useSettings();
+  const isDemoMode = !!localStorage.getItem('demo_access_token');
   const [amount, setAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [provider, setProvider] = useState('');
@@ -73,6 +74,20 @@ export default function Withdrawals({ balance, onWithdraw }) {
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
+
+        {/* Demo mode block */}
+        {isDemoMode && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-8 text-center shadow-md">
+            <div className="text-5xl mb-4">🎮</div>
+            <h2 className="text-xl font-bold text-yellow-800 mb-2">Demo Account</h2>
+            <p className="text-yellow-700 text-sm">
+              Withdrawals are not available in demo mode. Demo funds are virtual and cannot be withdrawn.
+            </p>
+            <p className="text-yellow-600 text-xs mt-3">Switch to a real account to make withdrawals.</p>
+          </div>
+        )}
+
+        {!isDemoMode && (<>
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-t-xl p-6 sm:p-8 shadow-lg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -230,6 +245,7 @@ export default function Withdrawals({ balance, onWithdraw }) {
             </div>
           </div>
         </div>
+        </>)}
       </div>
     </div>
   );

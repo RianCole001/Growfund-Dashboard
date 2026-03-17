@@ -1,303 +1,134 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Send, Trash2, Users, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { Bell, Send, Trash2, Users, AlertCircle, CheckCircle, Info, AlertTriangle, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const API = 'https://growfun-backend.onrender.com/api/notifications/admin';
+const getToken = () => localStorage.getItem('admin_access_token') || localStorage.getItem('user_access_token');
+const authHeaders = () => ({ 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' });
+
+const typeIcon = (type) => {
+  const icons = {
+    success: <CheckCircle className="w-5 h-5 text-green-500" />,
+    warning: <AlertTriangle className="w-5 h-5 text-yellow-500" />,
+    error: <AlertCircle className="w-5 h-5 text-red-500" />,
+  };
+  return icons[type] || <Info className="w-5 h-5 text-blue-500" />;
+};
+
+const typeBadge = (type) => ({
+  success: 'bg-green-100 text-green-700',
+  warning: 'bg-yellow-100 text-yellow-700',
+  error: 'bg-red-100 text-red-700',
+  info: 'bg-blue-100 text-blue-700',
+}[type] || 'bg-gray-100 text-gray-600');
+
+const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500';
+const selectCls = inputCls;
 
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newNotification, setNewNotification] = useState({
-    title: '',
-    message: '',
-    type: 'info',
-    target: 'all',
-    targetUsers: '',
-    priority: 'normal'
-  });
+  const [showModal, setShowModal] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [form, setForm] = useState({ title: '', message: '', type: 'info', target: 'all', targetUsers: '', priority: 'normal' });
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  useEffect(() => { fetchNotifications(); }, []);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      
-      const token = localStorage.getItem('admin_access_token') || localStorage.getItem('user_access_token');
-      
-      if (!token) {
-        toast.error('Please login as admin to access notifications');
-        setLoading(false);
-        return;
-      }
-      
-      const response = await fetch('https://growfun-backend.onrender.com/api/notifications/admin/notifications/', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Check if response is ok
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        throw new Error(`Server error (${response.status}): ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setNotifications(result.data || []);
-      } else {
-        throw new Error(result.error || 'Failed to fetch notifications');
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      if (error.message.includes('500')) {
-        toast.error('Backend server error. The notification system may not be set up yet.');
-      } else {
-        toast.error('Failed to load notifications: ' + error.message);
-      }
+      if (!getToken()) { toast.error('Please login as admin'); return; }
+      const res = await fetch(`${API}/notifications/`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
+      const result = await res.json();
+      if (result.success) setNotifications(result.data || []);
+      else throw new Error(result.error || 'Failed');
+    } catch (err) {
+      toast.error('Failed to load: ' + err.message);
       setNotifications([]);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const handleCreateNotification = async () => {
-    if (!newNotification.title.trim() || !newNotification.message.trim()) {
-      toast.error('Title and message are required');
-      return;
-    }
-
+  const handleSend = async () => {
+    if (!form.title.trim() || !form.message.trim()) { toast.error('Title and message required'); return; }
     try {
-      setLoading(true);
-      
-      const token = localStorage.getItem('admin_access_token') || localStorage.getItem('user_access_token');
-      
-      if (!token) {
-        toast.error('Please login as admin to send notifications');
-        setLoading(false);
-        return;
-      }
-      
-      const requestBody = {
-        title: newNotification.title,
-        message: newNotification.message,
-        type: newNotification.type,
-        priority: newNotification.priority,
-        target: newNotification.target,
-        target_users: newNotification.target === 'specific_users' ? newNotification.targetUsers : ''
-      };
-
-      const response = await fetch('https://growfun-backend.onrender.com/api/notifications/admin/send/', {
+      setSending(true);
+      const res = await fetch(`${API}/send/`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+        headers: authHeaders(),
+        body: JSON.stringify({ ...form, target_users: form.target === 'specific_users' ? form.targetUsers : '' }),
       });
-
-      // Check if response is ok
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        throw new Error(`Server error (${response.status}): ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
+      const result = await res.json();
       if (result.success) {
-        setNotifications([result.data, ...notifications]);
-        setShowCreateModal(false);
-        setNewNotification({
-          title: '',
-          message: '',
-          type: 'info',
-          target: 'all',
-          targetUsers: '',
-          priority: 'normal'
-        });
-        toast.success(`Notification sent to ${result.data.sent_count} users!`);
-      } else {
-        throw new Error(result.error || 'Failed to send notification');
-      }
-    } catch (error) {
-      console.error('Error creating notification:', error);
-      if (error.message.includes('500')) {
-        toast.error('Backend server error. Please check if the notification system is properly configured.');
-      } else {
-        toast.error('Failed to send notification: ' + error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+        setNotifications(n => [result.data, ...n]);
+        setShowModal(false);
+        setForm({ title: '', message: '', type: 'info', target: 'all', targetUsers: '', priority: 'normal' });
+        toast.success(`Sent to ${result.data.sent_count} users`);
+      } else throw new Error(result.error || 'Failed');
+    } catch (err) { toast.error('Failed to send: ' + err.message); }
+    finally { setSending(false); }
   };
 
-  const handleDeleteNotification = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this notification?')) return;
-
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this notification?')) return;
     try {
-      const token = localStorage.getItem('admin_access_token') || localStorage.getItem('user_access_token');
-      
-      if (!token) {
-        toast.error('Please login as admin to delete notifications');
-        return;
-      }
-      
-      const response = await fetch(`https://growfun-backend.onrender.com/api/notifications/admin/notifications/${id}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Check if response is ok
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        throw new Error(`Server error (${response.status}): ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setNotifications(notifications.filter(n => n.id !== id));
-        toast.success('Notification deleted');
-      } else {
-        throw new Error(result.error || 'Failed to delete notification');
-      }
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      if (error.message.includes('500')) {
-        toast.error('Backend server error. Could not delete notification.');
-      } else {
-        toast.error('Failed to delete notification: ' + error.message);
-      }
-    }
+      const res = await fetch(`${API}/notifications/${id}/`, { method: 'DELETE', headers: authHeaders() });
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
+      const result = await res.json();
+      if (result.success) { setNotifications(n => n.filter(x => x.id !== id)); toast.success('Deleted'); }
+      else throw new Error(result.error || 'Failed');
+    } catch (err) { toast.error('Failed to delete: ' + err.message); }
   };
 
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-400" />;
-      case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
-      case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-400" />;
-      default:
-        return <Info className="w-5 h-5 text-blue-400" />;
-    }
-  };
+  const setF = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  const getTypeColor = (type) => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-900 text-green-300';
-      case 'warning':
-        return 'bg-yellow-900 text-yellow-300';
-      case 'error':
-        return 'bg-red-900 text-red-300';
-      default:
-        return 'bg-blue-900 text-blue-300';
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  if (loading && notifications.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  if (loading && notifications.length === 0) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Notifications</h1>
-          <p className="text-gray-400">Send and manage user notifications</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Notifications</h2>
+          <p className="text-sm text-gray-500 mt-1">Send and manage user notifications</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center transition-colors"
-        >
-          <Send className="w-5 h-5 mr-2" />
-          Send Notification
+        <button onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors self-start sm:self-auto">
+          <Send className="w-4 h-4" /> Send Notification
         </button>
       </div>
 
-      {/* Notifications List */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <h2 className="text-xl font-bold text-white mb-4">Sent Notifications</h2>
-        
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
+        <h3 className="font-semibold text-gray-900 mb-4">Sent Notifications</h3>
         {notifications.length === 0 ? (
           <div className="text-center py-12">
-            <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No notifications sent yet</p>
+            <Bell className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+            <p className="text-gray-400 text-sm">No notifications sent yet</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="bg-gray-700 p-4 rounded-lg flex items-start justify-between"
-              >
-                <div className="flex items-start space-x-4 flex-1">
-                  <div className="mt-1">
-                    {getTypeIcon(notification.type)}
+          <div className="space-y-3">
+            {notifications.map((n) => (
+              <div key={n.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
+                <div className="shrink-0 mt-0.5">{typeIcon(n.type)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="font-semibold text-gray-900 text-sm">{n.title}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeBadge(n.type)}`}>{n.type}</span>
+                    {n.priority === 'high' && <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">High Priority</span>}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-white">
-                        {notification.title}
-                      </h3>
-                      <span className={`px-2 py-1 rounded text-xs ${getTypeColor(notification.type)}`}>
-                        {notification.type}
-                      </span>
-                      {notification.priority === 'high' && (
-                        <span className="px-2 py-1 rounded text-xs bg-red-900 text-red-300">
-                          High Priority
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-300 mb-3">{notification.message}</p>
-                    <div className="flex items-center space-x-4 text-sm text-gray-400">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-1" />
-                        <span>Sent to {notification.sent_count || 0} users</span>
-                      </div>
-                      <div className="flex items-center">
-                        <span className="capitalize">{notification.target.replace('_', ' ')}</span>
-                      </div>
-                      <div>
-                        {formatDate(notification.created_at)}
-                      </div>
-                    </div>
+                  <p className="text-sm text-gray-600 mb-2">{n.message}</p>
+                  <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+                    <span className="flex items-center gap-1"><Users className="w-3 h-3" />{n.sent_count || 0} users</span>
+                    <span className="capitalize">{n.target?.replace('_', ' ')}</span>
+                    <span>{new Date(n.created_at).toLocaleString()}</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteNotification(notification.id)}
-                  className="text-red-400 hover:text-red-300 p-2 transition-colors"
-                  title="Delete notification"
-                >
-                  <Trash2 className="w-5 h-5" />
+                <button onClick={() => handleDelete(n.id)} className="shrink-0 p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors">
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}
@@ -305,140 +136,66 @@ export default function AdminNotifications() {
         )}
       </div>
 
-      {/* Create Notification Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-white mb-6">Send New Notification</h2>
-            
-            <div className="space-y-4">
-              {/* Title */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">Send Notification</h3>
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={newNotification.title}
-                  onChange={(e) => setNewNotification({ ...newNotification, title: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter notification title"
-                />
+                <label className="text-sm font-medium text-gray-700 block mb-1.5">Title</label>
+                <input type="text" value={form.title} onChange={(e) => setF('title', e.target.value)} placeholder="Notification title" className={inputCls} />
               </div>
-
-              {/* Message */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Message
-                </label>
-                <textarea
-                  value={newNotification.message}
-                  onChange={(e) => setNewNotification({ ...newNotification, message: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
-                  placeholder="Enter notification message"
-                />
+                <label className="text-sm font-medium text-gray-700 block mb-1.5">Message</label>
+                <textarea value={form.message} onChange={(e) => setF('message', e.target.value)} placeholder="Notification message" rows={4} className={inputCls} />
               </div>
-
-              {/* Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Type
-                </label>
-                <select
-                  value={newNotification.type}
-                  onChange={(e) => setNewNotification({ ...newNotification, type: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="info">Info</option>
-                  <option value="success">Success</option>
-                  <option value="warning">Warning</option>
-                  <option value="error">Error</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1.5">Type</label>
+                  <select value={form.type} onChange={(e) => setF('type', e.target.value)} className={selectCls}>
+                    <option value="info">Info</option>
+                    <option value="success">Success</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1.5">Priority</label>
+                  <select value={form.priority} onChange={(e) => setF('priority', e.target.value)} className={selectCls}>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
               </div>
-
-              {/* Priority */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Priority
-                </label>
-                <select
-                  value={newNotification.priority}
-                  onChange={(e) => setNewNotification({ ...newNotification, priority: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-
-              {/* Target */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Send To
-                </label>
-                <select
-                  value={newNotification.target}
-                  onChange={(e) => setNewNotification({ ...newNotification, target: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
+                <label className="text-sm font-medium text-gray-700 block mb-1.5">Send To</label>
+                <select value={form.target} onChange={(e) => setF('target', e.target.value)} className={selectCls}>
                   <option value="all">All Users</option>
                   <option value="verified">Verified Users Only</option>
                   <option value="specific_users">Specific Users</option>
                 </select>
               </div>
-
-              {/* Target Users (if specific_users selected) */}
-              {newNotification.target === 'specific_users' && (
+              {form.target === 'specific_users' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    User Emails (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={newNotification.targetUsers}
-                    onChange={(e) => setNewNotification({ ...newNotification, targetUsers: e.target.value })}
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="user1@example.com, user2@example.com"
-                  />
+                  <label className="text-sm font-medium text-gray-700 block mb-1.5">User Emails (comma-separated)</label>
+                  <input type="text" value={form.targetUsers} onChange={(e) => setF('targetUsers', e.target.value)}
+                    placeholder="user1@example.com, user2@example.com" className={inputCls} />
                 </div>
               )}
             </div>
-
-            {/* Modal Actions */}
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setNewNotification({
-                    title: '',
-                    message: '',
-                    type: 'info',
-                    target: 'all',
-                    targetUsers: '',
-                    priority: 'normal'
-                  });
-                }}
-                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                disabled={loading}
-              >
+            <div className="flex gap-3 p-5 border-t border-gray-100">
+              <button onClick={() => setShowModal(false)} disabled={sending}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-medium transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={handleCreateNotification}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Notification
-                  </>
-                )}
+              <button onClick={handleSend} disabled={sending}
+                className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
+                {sending ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Sending...</> : <><Send className="w-4 h-4" /> Send</>}
               </button>
             </div>
           </div>

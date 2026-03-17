@@ -12,6 +12,19 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
   const [sellAmount, setSellAmount] = useState('');
   const [sellLoading, setSellLoading] = useState(false);
   const [priceUpdateTrigger, setPriceUpdateTrigger] = useState(0);
+  const [backendPortfolio, setBackendPortfolio] = useState(null); // live portfolio from backend
+
+  // Fetch live portfolio from backend
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      try {
+        const { userAuthAPI } = await import('../services/api');
+        const res = await userAuthAPI.getCryptoPortfolio();
+        if (res.data) setBackendPortfolio(res.data);
+      } catch {}
+    };
+    fetchPortfolio();
+  }, [investments]);
 
   // Listen for admin price changes
   useEffect(() => {
@@ -30,27 +43,44 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
 
   // Get admin-controlled sell price
   const getSellPrice = useCallback((coin) => {
+    // Prefer backend portfolio sell price if available
+    if (backendPortfolio) {
+      const holding = (backendPortfolio.holdings || backendPortfolio).find?.(h => h.coin === coin || h.symbol === coin);
+      if (holding?.sell_price) return parseFloat(holding.sell_price);
+    }
     const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
     if (adminPrices[coin] && adminPrices[coin].sellPrice) {
       return adminPrices[coin].sellPrice;
     }
-    // Fallback to 97% of current price if admin hasn't set sell price
     return (prices[coin]?.price || 0) * 0.97;
-  }, [prices]);
+  }, [prices, backendPortfolio]);
 
-  // Get admin-controlled buy/current price for EXACOIN and OPTCOIN
+  // Get current price — backend first, then admin-controlled, then live market
   const getCurrentPrice = useCallback((coin) => {
+    // Use backend live price if available
+    if (backendPortfolio) {
+      const holding = (backendPortfolio.holdings || backendPortfolio).find?.(h => h.coin === coin || h.symbol === coin);
+      if (holding?.current_price) return parseFloat(holding.current_price);
+    }
     if (coin === 'EXACOIN' || coin === 'OPTCOIN') {
       const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
       if (adminPrices[coin] && adminPrices[coin].price) {
         return parseFloat(adminPrices[coin].price) || 0;
       }
-      // Fallback prices for admin-controlled coins
       if (coin === 'EXACOIN') return 62.00;
       if (coin === 'OPTCOIN') return 85.30;
     }
     return parseFloat(prices[coin]?.price) || 0;
-  }, [prices]);
+  }, [prices, backendPortfolio]);
+
+  // Get full coin name from backend portfolio or fallback to symbol
+  const getCoinName = useCallback((coin) => {
+    if (backendPortfolio) {
+      const holding = (backendPortfolio.holdings || backendPortfolio).find?.(h => h.coin === coin || h.symbol === coin);
+      if (holding?.name) return holding.name;
+    }
+    return coin;
+  }, [backendPortfolio]);
 
   // Calculate portfolio data
   const portfolioData = useMemo(() => {
@@ -76,12 +106,13 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
       if (!cryptoHoldings[coin]) {
         cryptoHoldings[coin] = {
           coin,
+          name: getCoinName(coin),
           totalInvested: 0,
-          quantity: 0, // Initialize to 0 for crypto
+          quantity: 0,
           transactions: [],
-          totalPurchaseValue: 0, // Track total value at purchase prices
-          averagePurchasePrice: 0, // Track average purchase price
-          investmentIds: [] // Track investment IDs for selling
+          totalPurchaseValue: 0,
+          averagePurchasePrice: 0,
+          investmentIds: []
         };
       }
       // Ensure amounts are properly converted to numbers
@@ -154,7 +185,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
         balance
       }
     };
-  }, [investments, balance, prices, getCurrentPrice, priceUpdateTrigger]);
+  }, [investments, balance, prices, getCurrentPrice, getCoinName, priceUpdateTrigger]);
 
   const openSellModal = (holding) => {
     setSelectedHolding(holding);
@@ -940,7 +971,10 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                     <tr key={index} className="hover:bg-gray-50 border border-gray-200/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="text-sm font-medium text-white">{holding.coin}</div>
+                          <div>
+                            <div className="text-sm font-medium text-white">{holding.name || holding.coin}</div>
+                            <div className="text-xs text-gray-400">{holding.coin}</div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

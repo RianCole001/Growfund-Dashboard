@@ -253,9 +253,14 @@ export const binaryOptionsAPI = {
   
   // Trades
   openTrade: (data) => userApi.post('/binary/trades/open/', data),
-  getActiveTrades: () => userApi.get('/binary/trades/active/'),
+  getActiveTrades: (params) => userApi.get('/binary/trades/active/', { params }),
+  closeTrade: (tradeId) => userApi.post(`/binary/trades/${tradeId}/close/`),
   getTradeHistory: (params) => userApi.get('/binary/trades/history/', { params }),
-  
+
+  // Chart
+  getChartData: (symbol, interval = '1m', limit = 100) =>
+    userApi.get(`/binary/assets/${symbol}/chart/`, { params: { interval, limit } }),
+
   // Stats
   getUserStats: () => userApi.get('/binary/stats/'),
 };
