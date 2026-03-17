@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Settings as SettingsIcon, Menu, User } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { userAuthAPI } from './services/api';
+import { userAuthAPI, investmentsAPI } from './services/api';
 import { useUserAuth } from './auth/UserAuthContext';
 import { useDemo } from './demo/DemoContext';
 
@@ -258,7 +258,7 @@ export default function App() {
       try {
         // Fetch both investments and transactions
         const [investmentsRes, transactionsRes] = await Promise.all([
-          userAuthAPI.getInvestments(),
+          investmentsAPI.getInvestments(),
           userAuthAPI.getTransactions()
         ]);
 

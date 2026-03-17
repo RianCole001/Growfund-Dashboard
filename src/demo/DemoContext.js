@@ -27,29 +27,27 @@ export const DemoProvider = ({ children }) => {
     }
   }, []);
 
-  // Load demo data from backend
+  // Load demo data from backend, fall back to local defaults if endpoints don't exist
   const loadDemoData = async () => {
     try {
       setLoading(true);
       const [balanceRes, investmentsRes, transactionsRes] = await Promise.all([
-        demoAPI.getDemoBalance(),
-        demoAPI.getDemoInvestments(),
-        demoAPI.getDemoTransactions()
+        demoAPI.getDemoBalance().catch(() => null),
+        demoAPI.getDemoInvestments().catch(() => null),
+        demoAPI.getDemoTransactions().catch(() => null),
       ]);
 
-      if (balanceRes.data.success) {
+      if (balanceRes?.data?.success) {
         setDemoBalance(parseFloat(balanceRes.data.data.balance));
       }
-
-      if (investmentsRes.data.success) {
+      if (investmentsRes?.data?.success) {
         setDemoInvestments(investmentsRes.data.data);
       }
-
-      if (transactionsRes.data.success) {
+      if (transactionsRes?.data?.success) {
         setDemoTransactions(transactionsRes.data.data);
       }
-    } catch (error) {
-      console.error('Error loading demo data:', error);
+    } catch {
+      // backend demo endpoints unavailable — keep existing local state
     } finally {
       setLoading(false);
     }
@@ -59,19 +57,16 @@ export const DemoProvider = ({ children }) => {
     try {
       setLoading(true);
       setIsDemoMode(true);
-      
-      // Store demo mode in localStorage using the same token system as AppNew.js
       localStorage.setItem('demo_access_token', 'demo_user_token');
       localStorage.setItem('demo_mode', 'true');
-      
-      // Get or create demo account
-      await demoAPI.getDemoAccount();
-      
-      // Load demo data
+
+      // Seed default balance so demo works even without backend
+      setDemoBalance(prev => prev > 0 ? prev : 10000);
+
+      // Try to get/create demo account from backend — ignore if unavailable
+      await demoAPI.getDemoAccount().catch(() => null);
       await loadDemoData();
-    } catch (error) {
-      console.error('Error enabling demo mode:', error);
-      // Fallback to default values
+    } catch {
       setDemoBalance(10000);
       setDemoInvestments([]);
       setDemoTransactions([]);

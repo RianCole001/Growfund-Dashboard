@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useReducer } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Clock, Settings, ChevronDown, Plus } from 'lucide-react';
-import { createChart } from 'lightweight-charts';
+import { createChart, CandlestickSeries } from 'lightweight-charts';
 import toast from 'react-hot-toast';
 import { binaryOptionsAPI } from '../services/api';
 
@@ -156,7 +156,7 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
       height: 160,
     });
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#2ecc71', downColor: '#e74c3c',
       borderUpColor: '#2ecc71', borderDownColor: '#e74c3c',
       wickUpColor: '#2ecc71', wickDownColor: '#e74c3c',
