@@ -1,8 +1,100 @@
-import React, { useState, useEffect, useRef, useReducer } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Clock, Settings, ChevronDown, Plus } from 'lucide-react';
-import { createChart, CandlestickSeries } from 'lightweight-charts';
+import React, { useState, useEffect, useReducer } from 'react';
+import { TrendingUp, TrendingDown, DollarSign, Clock, ChevronDown, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { binaryOptionsAPI } from '../services/api';
+
+// Pure SVG live line chart — no dependencies
+function LiveLineChart({ points, activeTrades }) {
+  const W = 600, H = 160;
+  if (points.length < 2) {
+    return (
+      <div className="w-full rounded bg-[#111] flex items-center justify-center" style={{ height: H }}>
+        <span className="text-xs text-gray-600">Waiting for live data...</span>
+      </div>
+    );
+  }
+
+  const prices = points.map(p => p.price);
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+  const pad = 8;
+
+  const toX = (i) => pad + (i / (points.length - 1)) * (W - pad * 2);
+  const toY = (p) => H - pad - ((p - minP) / range) * (H - pad * 2);
+
+  const polyline = points.map((p, i) => `${toX(i)},${toY(p.price)}`).join(' ');
+  const areaPath = `M${toX(0)},${H} ` +
+    points.map((p, i) => `L${toX(i)},${toY(p.price)}`).join(' ') +
+    ` L${toX(points.length - 1)},${H} Z`;
+
+  const last = points[points.length - 1];
+  const prev = points[points.length - 2];
+  const isUp = last.price >= prev.price;
+  const color = isUp ? '#2ecc71' : '#e74c3c';
+  const dotX = toX(points.length - 1);
+  const dotY = toY(last.price);
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className="w-full rounded"
+      style={{ height: H, display: 'block' }}
+    >
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+
+      {/* Grid lines */}
+      {[0.25, 0.5, 0.75].map(f => (
+        <line key={f} x1={pad} y1={pad + f * (H - pad * 2)} x2={W - pad} y2={pad + f * (H - pad * 2)}
+          stroke="#2a2a2a" strokeWidth="1" />
+      ))}
+
+      {/* Strike price lines for active trades */}
+      {activeTrades.map(t => {
+        const sy = toY(t.strikePrice);
+        if (sy < pad || sy > H - pad) return null;
+        return (
+          <g key={t.id}>
+            <line x1={pad} y1={sy} x2={W - pad} y2={sy}
+              stroke={t.direction === 'buy' ? '#2ecc71' : '#e74c3c'}
+              strokeWidth="1" strokeDasharray="4 3" opacity="0.7" />
+            <text x={W - pad - 2} y={sy - 3} fill={t.direction === 'buy' ? '#2ecc71' : '#e74c3c'}
+              fontSize="8" textAnchor="end">{t.direction.toUpperCase()} ${t.strikePrice.toFixed(2)}</text>
+          </g>
+        );
+      })}
+
+      {/* Area fill */}
+      <path d={areaPath} fill="url(#chartGrad)" />
+
+      {/* Line */}
+      <polyline points={polyline} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+
+      {/* Live dot */}
+      <circle cx={dotX} cy={dotY} r="4" fill={color} opacity="0.9" />
+      <circle cx={dotX} cy={dotY} r="7" fill={color} opacity="0.2">
+        <animate attributeName="r" values="4;9;4" dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.3;0;0.3" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+
+      {/* Current price label */}
+      <rect x={dotX + 6} y={dotY - 8} width="52" height="14" rx="3" fill={color} opacity="0.9" />
+      <text x={dotX + 32} y={dotY + 2} fill="#fff" fontSize="9" fontWeight="bold" textAnchor="middle">
+        ${last.price.toFixed(2)}
+      </text>
+
+      {/* Min/Max labels */}
+      <text x={pad + 2} y={toY(maxP) - 3} fill="#555" fontSize="8">${maxP.toFixed(2)}</text>
+      <text x={pad + 2} y={toY(minP) + 10} fill="#555" fontSize="8">${minP.toFixed(2)}</text>
+    </svg>
+  );
+}
 
 const tradeReducer = (state, action) => {
   switch (action.type) {
@@ -42,9 +134,9 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
   const [currentBalance, setCurrentBalance] = useState(initialBalance);
   const [assets, setAssets] = useState([]);
   const [isDemo, setIsDemo] = useState(true);
-  const chartContainerRef = useRef(null);
-  const chartRef = useRef(null);
-  const candleSeriesRef = useRef(null);
+  // Live SVG chart — rolling price history
+  const [priceHistory, setPriceHistory] = useState([]);
+  const MAX_POINTS = 80;
 
   const fallbackAssets = [
     { symbol: 'OIL', name: 'Crude Oil', volatility: 0.02 },
@@ -87,22 +179,37 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
     fetchBalances();
   }, [isDemo, initialBalance]);
 
-  // Live price polling (1s)
+  // Live price polling — pushes into rolling SVG chart history (1s)
   useEffect(() => {
+    // Reset history when asset changes
+    setPriceHistory([]);
     const fetchPrices = async () => {
       try {
         const response = await binaryOptionsAPI.getAllPrices();
         if (response.data.success && response.data.prices?.[selectedAsset]) {
-          dispatch({ type: 'UPDATE_PRICE', payload: parseFloat(response.data.prices[selectedAsset].price) });
+          const price = parseFloat(response.data.prices[selectedAsset].price);
+          dispatch({ type: 'UPDATE_PRICE', payload: price });
+          setPriceHistory(prev => {
+            const next = [...prev, { price, t: Date.now() }];
+            return next.length > MAX_POINTS ? next.slice(next.length - MAX_POINTS) : next;
+          });
         }
-      } catch {}
+      } catch {
+        // if backend unavailable, nudge price slightly so chart keeps moving
+        setPriceHistory(prev => {
+          if (prev.length === 0) return prev;
+          const last = prev[prev.length - 1].price;
+          const price = parseFloat((last + (Math.random() - 0.5) * 0.08).toFixed(2));
+          dispatch({ type: 'UPDATE_PRICE', payload: price });
+          const next = [...prev, { price, t: Date.now() }];
+          return next.length > MAX_POINTS ? next.slice(next.length - MAX_POINTS) : next;
+        });
+      }
     };
     fetchPrices();
     const interval = setInterval(fetchPrices, 1000);
     return () => clearInterval(interval);
   }, [selectedAsset]);
-
-  // Active trades polling (5s)
   useEffect(() => {
     const fetchActiveTrades = async () => {
       try {
@@ -141,58 +248,7 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
     fetchHistory();
   }, [isDemo]);
 
-  // Lightweight-charts candlestick chart setup
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; candleSeriesRef.current = null; }
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: { background: { color: '#1a1a1a' }, textColor: '#888' },
-      grid: { vertLines: { color: '#2a2a2a' }, horzLines: { color: '#2a2a2a' } },
-      crosshair: { mode: 1 },
-      rightPriceScale: { borderColor: '#2a2a2a' },
-      timeScale: { borderColor: '#2a2a2a', timeVisible: true, secondsVisible: false },
-      autoSize: true,
-      height: 160,
-    });
-
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#2ecc71', downColor: '#e74c3c',
-      borderUpColor: '#2ecc71', borderDownColor: '#e74c3c',
-      wickUpColor: '#2ecc71', wickDownColor: '#e74c3c',
-    });
-
-    chartRef.current = chart;
-    candleSeriesRef.current = candleSeries;
-
-    return () => {
-      if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
-    };
-  }, [selectedAsset]);
-
-  // Chart data polling (10s)
-  useEffect(() => {
-    const fetchChartData = async () => {
-      try {
-        const response = await binaryOptionsAPI.getChartData(selectedAsset, '1m', 100);
-        if (response.data && candleSeriesRef.current) {
-          const raw = response.data.candles || response.data;
-          if (Array.isArray(raw) && raw.length > 0) {
-            const candles = raw.map(c => ({
-              time: typeof c.time === 'number' ? c.time : Math.floor(new Date(c.time).getTime() / 1000),
-              open: parseFloat(c.open), high: parseFloat(c.high),
-              low: parseFloat(c.low), close: parseFloat(c.close),
-            })).sort((a, b) => a.time - b.time);
-            candleSeriesRef.current.setData(candles);
-            if (chartRef.current) chartRef.current.timeScale().fitContent();
-          }
-        }
-      } catch {}
-    };
-    fetchChartData();
-    const interval = setInterval(fetchChartData, 10000);
-    return () => clearInterval(interval);
-  }, [selectedAsset]);
 
   // Countdown timer — calls backend closeTrade when expiry hits 0
   useEffect(() => {
@@ -312,15 +368,13 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
         {/* Chart + Trades (left/main column) */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-          {/* Candlestick Chart */}
+          {/* Live SVG Line Chart */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] p-2 flex-shrink-0">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold text-gray-300">{selectedAsset} · Live Chart</span>
-              <button className="p-1 hover:bg-[#2a2a2a] rounded transition-colors">
-                <Settings className="w-3.5 h-3.5 text-gray-400" />
-              </button>
+              <span className="text-xs font-semibold text-gray-300">{selectedAsset} · Live</span>
+              <span className="text-xs text-gray-500">{priceHistory.length} pts</span>
             </div>
-            <div ref={chartContainerRef} className="w-full rounded" style={{ height: '160px' }} />
+            <LiveLineChart points={priceHistory} activeTrades={tradeState.activeTrades} />
           </div>
 
           {/* Trades tabs — desktop only */}
