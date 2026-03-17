@@ -669,8 +669,19 @@ export default function App() {
           </div>
         </header>
 
+        {/* Trade Now — full bleed, no padding */}
+        {page === 'Trade Now' && (
+          <div className="flex-grow overflow-hidden">
+            <TradeNow
+              balance={isDemoMode ? currentDemoBalance : balance}
+              onTrade={() => {}}
+              prices={prices}
+            />
+          </div>
+        )}
+
         {/* Main Content */}
-        <main className="flex-grow p-4 lg:p-6 overflow-hidden flex flex-col lg:flex-row">
+        <main className={`flex-grow p-4 lg:p-6 overflow-hidden flex flex-col lg:flex-row ${page === 'Trade Now' ? 'hidden' : ''}`}>
           <div className="flex-grow mr-0 lg:mr-4">
             {page === 'Dashboard' && (
               <Overview 
@@ -700,14 +711,6 @@ export default function App() {
                 prices={prices} 
                 loading={loadingPrices}
                 onSellCrypto={handleSellCrypto}
-              />
-            )}
-
-            {page === 'Trade Now' && (
-              <TradeNow 
-                balance={isDemoMode ? currentDemoBalance : balance} 
-                onTrade={() => {}} 
-                prices={prices} 
               />
             )}
 

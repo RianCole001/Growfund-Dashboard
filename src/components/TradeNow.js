@@ -152,7 +152,7 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
       crosshair: { mode: 1 },
       rightPriceScale: { borderColor: '#2a2a2a' },
       timeScale: { borderColor: '#2a2a2a', timeVisible: true, secondsVisible: false },
-      width: chartContainerRef.current.clientWidth,
+      autoSize: true,
       height: 160,
     });
 
@@ -165,15 +165,7 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
 
-    const ro = new ResizeObserver(() => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    });
-    ro.observe(chartContainerRef.current);
-
     return () => {
-      ro.disconnect();
       if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
     };
   }, [selectedAsset]);
@@ -278,7 +270,7 @@ export default function TradeNow({ balance: initialBalance = 10000, onTrade, onB
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#0f0f0f] text-white flex flex-col">
+    <div className="h-full w-full overflow-hidden bg-[#0f0f0f] text-white flex flex-col">
 
       {/* Top Bar */}
       <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] px-3 py-2 flex-shrink-0">
