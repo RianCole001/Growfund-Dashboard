@@ -54,20 +54,8 @@ export const SettingsProvider = ({ children }) => {
       setLoading(true);
       const data = await settingsService.getPublicSettings();
       
-      console.log('🔧 Settings API Response:', data);
-      
       if (data.success) {
         const publicSettings = data.data;
-        console.log('📊 Public Settings Data:', publicSettings);
-        
-        // Log individual plan minimums specifically
-        console.log('💰 Individual Plan Minimums from API:');
-        console.log('  - capitalBasicMin:', publicSettings.capitalBasicMin);
-        console.log('  - capitalStandardMin:', publicSettings.capitalStandardMin);
-        console.log('  - capitalAdvanceMin:', publicSettings.capitalAdvanceMin);
-        console.log('  - realEstateStarterMin:', publicSettings.realEstateStarterMin);
-        console.log('  - realEstatePremiumMin:', publicSettings.realEstatePremiumMin);
-        console.log('  - realEstateLuxuryMin:', publicSettings.realEstateLuxuryMin);
         
         const newSettings = {
           platformName: publicSettings.platformName || 'GrowFund',
@@ -83,29 +71,17 @@ export const SettingsProvider = ({ children }) => {
           minCapitalPlanInvestment: parseFloat(publicSettings.minCapitalPlanInvestment) || 500,
           minRealEstateInvestment: parseFloat(publicSettings.minRealEstateInvestment) || 1000,
           minCryptoInvestment: parseFloat(publicSettings.minCryptoInvestment) || 50,
-          // Capital Plan Individual Minimums
           capitalBasicMin: parseFloat(publicSettings.capitalBasicMin) || 30,
           capitalStandardMin: parseFloat(publicSettings.capitalStandardMin) || 60,
           capitalAdvanceMin: parseFloat(publicSettings.capitalAdvanceMin) || 100,
-          // Real Estate Individual Minimums
           realEstateStarterMin: parseFloat(publicSettings.realEstateStarterMin) || 1000,
           realEstatePremiumMin: parseFloat(publicSettings.realEstatePremiumMin) || 5000,
           realEstateLuxuryMin: parseFloat(publicSettings.realEstateLuxuryMin) || 20000,
         };
         
-        console.log('✅ Setting new settings:', newSettings);
-        console.log('💰 Individual Plan Minimums in new settings:');
-        console.log('  - capitalBasicMin:', newSettings.capitalBasicMin);
-        console.log('  - capitalStandardMin:', newSettings.capitalStandardMin);
-        console.log('  - capitalAdvanceMin:', newSettings.capitalAdvanceMin);
-        console.log('  - realEstateStarterMin:', newSettings.realEstateStarterMin);
-        console.log('  - realEstatePremiumMin:', newSettings.realEstatePremiumMin);
-        console.log('  - realEstateLuxuryMin:', newSettings.realEstateLuxuryMin);
-        
         setSettings(newSettings);
       }
     } catch (error) {
-      console.error('❌ Error loading public settings:', error);
       // Keep default values on error
     } finally {
       setLoading(false);

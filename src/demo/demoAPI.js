@@ -189,7 +189,7 @@ class DemoAPI {
         }
       }
     } catch (error) {
-      console.log('Demo: Using fallback referral bonus amount');
+      // Use fallback referral bonus amount
     }
     
     // Update demo referral stats with current bonus amount
