@@ -30,8 +30,8 @@ export default function GoldChart() {
           if (data && data.price) {
             basePrice = data.price;
           }
-        } catch (e) {
-          console.log('Using fallback gold price');
+        } catch {
+          // use fallback gold price
         }
 
         // Generate initial data points
@@ -42,8 +42,7 @@ export default function GoldChart() {
         setSessionHigh(basePrice);
         setSessionLow(basePrice);
         setLoading(false);
-      } catch (err) {
-        console.error('Error initializing chart:', err);
+      } catch {
         setError('Failed to initialize chart');
         setLoading(false);
       }

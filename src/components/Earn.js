@@ -30,11 +30,7 @@ export default function Earn() {
       const statsResponse = await userAuthAPI.getReferralStats();
       const statsData = statsResponse.data;
       
-      console.log('DEBUG: Stats response:', statsData);
-      
-      // Check if referral_code is empty
       if (!statsData.referral_code) {
-        console.warn('WARNING: referral_code is empty or missing');
         toast.error('Referral code not found. Please contact support.');
       }
       
@@ -54,20 +50,15 @@ export default function Earn() {
         const referralsResponse = await userAuthAPI.getReferrals();
         const referralsData = referralsResponse.data;
         
-        console.log('DEBUG: Referrals response:', referralsData);
-        
         if (referralsData && referralsData.referrals && Array.isArray(referralsData.referrals)) {
           setReferrals(referralsData.referrals);
         } else {
           setReferrals([]);
         }
       } catch (error) {
-        console.error('Error fetching referrals list:', error);
         setReferrals([]);
       }
     } catch (error) {
-      console.error('Error fetching referral data:', error);
-      console.error('Error details:', error.response?.data || error.message);
       toast.error('Failed to load referral data');
     } finally {
       setLoading(false);

@@ -108,6 +108,18 @@ export default function Deposits({ onDeposit }) {
         { id: 'Bank Transfer', name: 'Bank Transfer', icon: '🏦', type: 'bank' },
         { id: 'USDT Wallet', name: 'USDT Wallet', icon: '₿', type: 'crypto' }
       ]
+    },
+    {
+      name: 'United States',
+      code: 'US',
+      flag: '🇺🇸',
+      currency: 'USD',
+      symbol: '$',
+      methods: [
+        { id: 'Wire Transfer', name: 'Wire Transfer', icon: '🏦', type: 'bank' },
+        { id: 'ACH Transfer', name: 'ACH Transfer', icon: '🏦', type: 'bank' },
+        { id: 'USDT Wallet', name: 'USDT Wallet', icon: '₿', type: 'crypto' }
+      ]
     }
   ];
 

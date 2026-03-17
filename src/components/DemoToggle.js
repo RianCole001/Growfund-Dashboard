@@ -94,12 +94,11 @@ export default function DemoToggle() {
               <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
                 <div className="flex items-center mb-2">
                   <Lock className="w-4 h-4 mr-2 text-blue-600" />
-                  <span className="font-semibold text-blue-800">Demo Credentials</span>
+                  <span className="font-semibold text-blue-800">Demo Account</span>
                 </div>
-                <div className="text-blue-700 font-mono text-xs bg-blue-100 p-2 rounded">
-                  <div>Email: demo@growfund.com</div>
-                  <div>Password: demo123</div>
-                </div>
+                <p className="text-blue-700 text-xs">
+                  Click "Start Demo" to instantly access the demo account — no login required.
+                </p>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">

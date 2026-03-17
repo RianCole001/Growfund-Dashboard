@@ -366,8 +366,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
         const dateA = safeParseDate(a.created_at || a.date);
         const dateB = safeParseDate(b.created_at || b.date);
         return dateA - dateB;
-      } catch (error) {
-        console.warn('Date sorting error:', error);
+      } catch {
         return 0;
       }
     });
@@ -381,8 +380,8 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
         if (dateValue) {
           formattedDate = formatDate(dateValue);
         }
-      } catch (error) {
-        console.warn('Date formatting error in growth chart:', inv, error);
+      } catch {
+        // ignore date formatting errors
       }
       
       return {
@@ -1073,8 +1072,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                                 const dateValue = plan.created_at || plan.date;
                                 if (!dateValue) return 'N/A';
                                 return formatDate(dateValue);
-                              } catch (error) {
-                                console.warn('Date formatting error for plan:', plan, error);
+                              } catch {
                                 return 'N/A';
                               }
                             })()}
@@ -1125,8 +1123,7 @@ export default function Portfolio({ investments = [], balance = 0, prices = {}, 
                                 const dateValue = investment.created_at || investment.date;
                                 if (!dateValue) return 'N/A';
                                 return formatDate(dateValue);
-                              } catch (error) {
-                                console.warn('Date formatting error for investment:', investment, error);
+                              } catch {
                                 return 'N/A';
                               }
                             })()}

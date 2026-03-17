@@ -150,21 +150,23 @@ export const useNotifications = () => {
     setLastFetchTime(null);
   }, []);
 
-  // Clear notifications when user changes (token changes)
+  // Clear notifications when user changes — compare token hash, not raw token
   useEffect(() => {
     const currentToken = localStorage.getItem('user_access_token');
-    const storedToken = localStorage.getItem('last_notification_token');
-    
-    // If token changed (different user logged in), clear notifications
-    if (storedToken && currentToken !== storedToken) {
+    // Use a simple hash (first+last 8 chars) to detect user change without storing full token
+    const tokenFingerprint = currentToken
+      ? `${currentToken.slice(0, 8)}${currentToken.slice(-8)}`
+      : null;
+    const storedFingerprint = sessionStorage.getItem('_nfp');
+
+    if (storedFingerprint && tokenFingerprint !== storedFingerprint) {
       clearNotifications();
     }
-    
-    // Store current token for next comparison
-    if (currentToken) {
-      localStorage.setItem('last_notification_token', currentToken);
+
+    if (tokenFingerprint) {
+      sessionStorage.setItem('_nfp', tokenFingerprint);
     } else {
-      localStorage.removeItem('last_notification_token');
+      sessionStorage.removeItem('_nfp');
     }
   }, [clearNotifications]);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // Supported countries in the deposits system
-const SUPPORTED_COUNTRIES = ['Ghana', 'Kenya', 'Nigeria', 'Uganda', 'Tanzania', 'Rwanda'];
+const SUPPORTED_COUNTRIES = ['Ghana', 'Kenya', 'Nigeria', 'Uganda', 'Tanzania', 'Rwanda', 'United States'];
 
 // Map ISO country codes to country names used in the app
 const COUNTRY_CODE_MAP = {
@@ -11,6 +11,7 @@ const COUNTRY_CODE_MAP = {
   UG: 'Uganda',
   TZ: 'Tanzania',
   RW: 'Rwanda',
+  US: 'United States',
 };
 
 export default function useGeoLocation() {

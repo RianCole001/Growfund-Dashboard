@@ -86,14 +86,7 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
 
   // Get the actual minimum investment for the selected plan
   const getMinInvestment = () => {
-    const minValue = settings[plan.settingsKey] || plan.min;
-    console.log(`🏠 RealEstate - Getting min investment for ${plan.name}:`, {
-      settingsKey: plan.settingsKey,
-      settingsValue: settings[plan.settingsKey],
-      fallbackValue: plan.min,
-      finalValue: minValue
-    });
-    return minValue;
+    return settings[plan.settingsKey] || plan.min;
   };
 
   const selectPlan = (id) => {

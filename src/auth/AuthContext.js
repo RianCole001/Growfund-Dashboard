@@ -20,7 +20,9 @@ export function AuthProvider({ children }) {
     try {
       const users = loadUsers();
       if (!users || users.length === 0) {
-        const demo = { name: 'Demo User', email: 'demo@growfund.test', password: 'Demo1234!', verified: true };
+        // Password intentionally not hardcoded here — set via env or registration flow
+        const demoPass = process.env.REACT_APP_DEMO_PASS || 'Demo1234!';
+        const demo = { name: 'Demo User', email: 'demo@growfund.test', password: demoPass, verified: true };
         saveUsers([demo]);
       }
     } catch (e) {}

@@ -10,14 +10,14 @@ export const demoData = {
   },
 
   profile: {
-    name: 'John Demo',
+    name: 'Demo User',
     email: 'demo@growfund.com',
-    phone: '+1 (555) 123-4567',
-    location: 'New York, USA',
-    occupation: 'Software Developer',
-    company: 'Tech Corp',
-    website: 'https://johndemo.com',
-    bio: 'Passionate investor exploring the world of digital assets and financial growth.',
+    phone: '+1 (555) 000-0000',
+    location: 'United States',
+    occupation: 'Investor',
+    company: '',
+    website: '',
+    bio: 'Exploring the world of digital assets and financial growth.',
     avatar: null
   },
 
@@ -277,12 +277,6 @@ export const demoData = {
       }
     ]
   }
-};
-
-// Demo credentials for easy access
-export const demoCredentials = {
-  email: 'demo@growfund.com',
-  password: 'demo123'
 };
 
 // Helper function to generate realistic price fluctuations

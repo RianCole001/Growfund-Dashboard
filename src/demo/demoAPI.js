@@ -24,7 +24,7 @@ class DemoAPI {
       };
     }
     
-    throw new Error('Invalid demo credentials. Use demo@growfund.com / demo123');
+    throw new Error('Invalid demo credentials');
   }
 
   async register(userData) {

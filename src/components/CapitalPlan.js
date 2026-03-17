@@ -10,14 +10,6 @@ export default function CapitalPlan({ investments = [], balance = 0, onInvest = 
   const { settings } = useSettings();
   
   const plans = useMemo(() => {
-    console.log('💰 CapitalPlan - Current settings:', settings);
-    console.log('💰 CapitalPlan - Individual minimums:', {
-      basic: settings.capitalBasicMin,
-      standard: settings.capitalStandardMin,
-      advance: settings.capitalAdvanceMin
-    });
-    console.log('💰 CapitalPlan - Settings loading state:', { loading: settings.loading });
-    
     return [
       { 
         key: 'basic', 
