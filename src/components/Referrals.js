@@ -37,7 +37,7 @@ export default function Referrals() {
         setReferralStats(prev => ({
           ...prev,
           referral_code: response.data.referralCode,
-          referral_link: response.data.referral_link || `${window.location.origin}/register?ref=${response.data.referralCode}`
+          referral_link: response.data.referral_link,
         }));
         toast.success('New referral code generated!');
       }

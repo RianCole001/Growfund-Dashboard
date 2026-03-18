@@ -24,6 +24,7 @@ export default function AdminDeposits() {
   const handleApprove = async (id) => {
     setActionLoading(p => ({ ...p, [id]: 'approving' }));
     try {
+      await adminAuthAPI.approveDeposit(id);
       setDeposits(d => d.map(dep => dep.id === id ? { ...dep, status: 'approved' } : dep));
       toast.success('Deposit approved');
     } catch { toast.error('Failed to approve'); }
@@ -35,6 +36,7 @@ export default function AdminDeposits() {
     if (!reason) return;
     setActionLoading(p => ({ ...p, [id]: 'rejecting' }));
     try {
+      await adminAuthAPI.rejectDeposit(id, reason);
       setDeposits(d => d.map(dep => dep.id === id ? { ...dep, status: 'rejected' } : dep));
       toast.success('Deposit rejected');
     } catch { toast.error('Failed to reject'); }

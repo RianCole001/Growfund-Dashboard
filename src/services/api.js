@@ -138,8 +138,8 @@ export const userAuthAPI = {
   generateReferralCode: () => userApi.post('/auth/generate-referral-code/'),
   
   // Crypto Operations
-  buyCrypto: (data) => userApi.post('/crypto/buy/', data),
-  sellCrypto: (data) => userApi.post('/crypto/sell/', data),
+  buyCrypto: (data) => userApi.post('/investments/crypto/buy/', data),
+  sellCrypto: (data) => userApi.post('/investments/crypto/sell/', data),
   getCryptoPrices: () => userApi.get('/investments/crypto/prices/'),
   getCryptoPortfolio: () => userApi.get('/crypto/portfolio/'),
   
@@ -262,7 +262,26 @@ export const binaryOptionsAPI = {
     userApi.get(`/binary/assets/${symbol}/chart/`, { params: { interval, limit } }),
 
   // Stats
-  getUserStats: () => userApi.get('/binary/stats/'),
+  getUserStats: (isDemo = false) => userApi.get('/binary/stats/', { params: { is_demo: isDemo } }),
+
+  // Balances
+  getBalances: () => userApi.get('/binary/balances/'),
+
+  // Demo account
+  getDemoAccount: () => userApi.get('/demo/account/'),
+  resetDemoAccount: () => userApi.post('/demo/account/'),
+  getDemoTransactions: () => userApi.get('/demo/transactions/'),
+
+  // ExpressPay deposit
+  expressPayDeposit: (amount) => userApi.post('/transactions/expresspay/deposit/', { amount }),
+  expressPayCallback: (params) => userApi.get('/transactions/expresspay/callback/', { params }),
+  expressPayVerify: (data) => userApi.post('/transactions/expresspay/verify/', data),
+
+  // MoMo withdrawal
+  momoWithdrawal: (amount, phone_number) => userApi.post('/transactions/momo/withdrawal/', { amount, phone_number }),
+
+  // Transaction summary
+  getTransactionSummary: () => userApi.get('/transactions/summary/'),
 };
 
 // Keep old authAPI for backward compatibility

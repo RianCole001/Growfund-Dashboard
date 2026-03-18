@@ -17,6 +17,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import OnboardingPage from './pages/OnboardingPage';
+import PaymentCallbackPage from './pages/PaymentCallbackPage';
 import AppNew from './AppNew';
 import AdminApp from './AdminApp';
 
@@ -38,6 +39,7 @@ root.render(
                   <Route path="/forgot" element={<ForgotPasswordPage />} />
                   <Route path="/reset" element={<ResetPasswordPage />} />
                   <Route path="/onboarding" element={<OnboardingPage />} />
+                  <Route path="/payment/callback" element={<PaymentCallbackPage />} />
                   <Route path="/app/*" element={<AppNew />} />
                   <Route path="/admin" element={
                     <ProtectedAdminRoute>

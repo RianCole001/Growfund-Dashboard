@@ -1,10 +1,24 @@
-import React, { useState } from 'react';
-import { TrendingUp, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, Search, Filter, RefreshCw } from 'lucide-react';
+import { adminAuthAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 export default function AdminInvestments() {
-  const [investments] = useState([]);
+  const [investments, setInvestments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAsset, setFilterAsset] = useState('all');
+
+  useEffect(() => { fetchInvestments(); }, []);
+
+  const fetchInvestments = async () => {
+    try {
+      setLoading(true);
+      const response = await adminAuthAPI.getInvestments();
+      setInvestments(response.data.data || response.data.results || []);
+    } catch { toast.error('Failed to load investments'); }
+    finally { setLoading(false); }
+  };
 
   const filtered = investments.filter(inv => {
     const s = inv.user?.toLowerCase().includes(searchTerm.toLowerCase()) || inv.asset?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -23,6 +37,10 @@ export default function AdminInvestments() {
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Investment Management</h2>
         <p className="text-sm text-gray-500 mt-1">Monitor all user investments</p>
       </div>
+      <button onClick={fetchInvestments} disabled={loading}
+        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start">
+        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+      </button>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -61,7 +79,12 @@ export default function AdminInvestments() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 text-sm">
-        No investments yet. User investments will appear here.
+        {loading ? (
+          <div className="flex items-center justify-center gap-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+            Loading investments...
+          </div>
+        ) : 'No investments yet. User investments will appear here.'}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Shield, Copy, Check, MapPin, Loader } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import useGeoLocation from '../hooks/useGeoLocation';
 import toast from 'react-hot-toast';
+import { binaryOptionsAPI } from '../services/api';
 
 export default function Deposits({ onDeposit }) {
   const { settings } = useSettings();
@@ -22,11 +23,11 @@ export default function Deposits({ onDeposit }) {
     }
   }, [detecting, detectedCountry]);
 
-  // Form fields
   const [accountName, setAccountName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const countries = [
     { 
@@ -141,73 +142,42 @@ export default function Deposits({ onDeposit }) {
     setMethod(''); // Reset method when country changes
   };
 
-  const handleSubmit = () => {
-    const amt = parseFloat(amount);
-    
-    if (!amount || amt <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
+  const handleSubmit = async () => {
+      const amt = parseFloat(amount);
+      if (!amount || amt <= 0) { toast.error('Please enter a valid amount'); return; }
+      if (amt < settings.minDeposit) { toast.error(`Minimum deposit is ${settings.minDeposit}`); return; }
+      if (amt > settings.maxDeposit) { toast.error(`Maximum deposit is ${settings.maxDeposit}`); return; }
+      if (!method) { toast.error('Please select a payment method'); return; }
+      if (currentMethod?.type === 'bank' && (!accountName || !accountNumber)) { toast.error('Please fill in all bank details'); return; }
+      if (currentMethod?.type === 'mobile' && !phoneNumber) { toast.error('Please enter your phone number'); return; }
+      if (currentMethod?.type === 'crypto' && !walletAddress) { toast.error('Please enter your wallet address'); return; }
+
+      // Ghana: redirect to ExpressPay gateway
+      if (country === 'Ghana') {
+        setSubmitting(true);
+        try {
+          const res = await binaryOptionsAPI.expressPayDeposit(amt);
+          const { checkout_url } = res.data;
+          if (checkout_url) { toast.success('Redirecting to payment gateway…'); window.location.href = checkout_url; return; }
+          throw new Error('No checkout URL');
+        } catch (err) {
+          toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to initiate payment');
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // Other countries: manual deposit request
+      const reference = `DEP-${Date.now()}`;
+      const details = { reference, method, country };
+      if (currentMethod?.type === 'bank') details.bank = { accountName, accountNumber };
+      else if (currentMethod?.type === 'mobile') details.mobile = { phoneNumber };
+      else if (currentMethod?.type === 'crypto') details.crypto = { walletAddress };
+
+      onDeposit({ amount: amt, method, details, date: new Date().toISOString(), reference });
+      setAmount(''); setAccountName(''); setAccountNumber(''); setPhoneNumber(''); setWalletAddress('');
+      toast.success('Deposit request submitted successfully!');
     }
-
-    if (amt < settings.minDeposit) {
-      toast.error(`Minimum deposit is $${settings.minDeposit}`);
-      return;
-    }
-
-    if (amt > settings.maxDeposit) {
-      toast.error(`Maximum deposit is $${settings.maxDeposit}`);
-      return;
-    }
-
-    if (!method) {
-      toast.error('Please select a payment method');
-      return;
-    }
-
-    // Validate based on method type
-    if (currentMethod?.type === 'bank' && (!accountName || !accountNumber)) {
-      toast.error('Please fill in all bank details');
-      return;
-    }
-
-    if (currentMethod?.type === 'mobile' && !phoneNumber) {
-      toast.error('Please enter your phone number');
-      return;
-    }
-
-    if (currentMethod?.type === 'crypto' && !walletAddress) {
-      toast.error('Please enter your wallet address');
-      return;
-    }
-
-    const reference = `DEP-${Date.now()}`;
-    const details = { reference, method, country };
-
-    if (currentMethod?.type === 'bank') {
-      details.bank = { accountName, accountNumber };
-    } else if (currentMethod?.type === 'mobile') {
-      details.mobile = { phoneNumber };
-    } else if (currentMethod?.type === 'crypto') {
-      details.crypto = { walletAddress };
-    }
-
-    onDeposit({
-      amount: amt,
-      method,
-      details,
-      date: new Date().toISOString(),
-      reference
-    });
-
-    // Reset form
-    setAmount('');
-    setAccountName('');
-    setAccountNumber('');
-    setPhoneNumber('');
-    setWalletAddress('');
-    
-    toast.success('Deposit request submitted successfully!');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-4 sm:px-6 lg:px-8">

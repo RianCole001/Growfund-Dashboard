@@ -23,47 +23,13 @@ function makeSparkline(price) {
 export default function CryptoInvestment({ onSelectCoin, prices = {}, loading = false, onViewCoin }) {
   const [localPrices, setLocalPrices] = useState(prices);
 
-  // Listen for admin price changes in localStorage
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'admin_crypto_prices') {
-        // Force re-render when admin prices change
-        setLocalPrices({...prices});
-      }
-    };
-
-    // Listen for localStorage changes from other tabs/windows
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Listen for custom events from same tab (when admin updates prices)
-    const handleAdminPriceUpdate = () => {
-      setLocalPrices({...prices});
-    };
-    
-    window.addEventListener('adminPriceUpdate', handleAdminPriceUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('adminPriceUpdate', handleAdminPriceUpdate);
-    };
-  }, [prices]);
-
   // Update local prices when props change
   useEffect(() => {
     setLocalPrices(prices);
   }, [prices]);
 
-  // Get admin-controlled price for EXACOIN and OPTCOIN
+  // Get admin-controlled price for EXACOIN and OPTCOIN from API prices (same as all other coins)
   const getDisplayPrice = (symbol) => {
-    if (symbol === 'EXACOIN' || symbol === 'OPTCOIN') {
-      const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
-      if (adminPrices[symbol] && adminPrices[symbol].price) {
-        return parseFloat(adminPrices[symbol].price) || 0;
-      }
-      // Fallback prices for admin-controlled coins
-      if (symbol === 'EXACOIN') return 62.00;
-      if (symbol === 'OPTCOIN') return 85.30;
-    }
     return localPrices[symbol]?.price || 0;
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Check, Clock, DollarSign, AlertCircle, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { adminAuthAPI } from '../services/api';
 
 export default function AdminWithdrawals() {
   const [withdrawals, setWithdrawals] = useState([]);
@@ -12,14 +13,18 @@ export default function AdminWithdrawals() {
   useEffect(() => { fetchWithdrawals(); }, []);
 
   const fetchWithdrawals = async () => {
-    try { setLoading(true); setWithdrawals([]); }
-    catch { toast.error('Failed to load withdrawals'); }
+    try {
+      setLoading(true);
+      const response = await adminAuthAPI.getWithdrawals();
+      setWithdrawals(response.data.data || response.data.results || []);
+    } catch { toast.error('Failed to load withdrawals'); }
     finally { setLoading(false); }
   };
 
   const handleApprove = async (id) => {
     setActionLoading(p => ({ ...p, [id]: 'approving' }));
     try {
+      await adminAuthAPI.approveWithdrawal(id);
       setWithdrawals(w => w.map(x => x.id === id ? { ...x, status: 'approved' } : x));
       toast.success('Withdrawal approved');
     } catch { toast.error('Failed'); }
@@ -31,6 +36,7 @@ export default function AdminWithdrawals() {
     if (!reason) return;
     setActionLoading(p => ({ ...p, [id]: 'rejecting' }));
     try {
+      await adminAuthAPI.rejectWithdrawal(id, reason);
       setWithdrawals(w => w.map(x => x.id === id ? { ...x, status: 'rejected' } : x));
       toast.success('Withdrawal rejected');
     } catch { toast.error('Failed'); }

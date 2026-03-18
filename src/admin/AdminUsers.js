@@ -21,29 +21,10 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching users from API...');
       const response = await adminAuthAPI.getAdminUsers();
-      
-      // Log the full response for debugging
-      console.log('Full API Response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response status:', response.status);
-      
-      // Handle paginated response format: { count, next, previous, results }
-      // OR custom format: { data, count }
       let userData = response.data.results || response.data.data || response.data;
-      
-      // Ensure userData is an array
-      if (!Array.isArray(userData)) {
-        console.warn('userData is not an array:', userData);
-        console.warn('Response structure:', response.data);
-        userData = [];
-      }
-      
-      console.log('Users from API:', userData.length);
-      console.log('Users data:', userData);
-      
-      // Transform backend data to match UI format
+      if (!Array.isArray(userData)) userData = [];
+
       const formattedUsers = userData.map((user, idx) => ({
         id: user.id || idx + 1,
         name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
@@ -53,20 +34,11 @@ export default function AdminUsers() {
         invested: user.invested || 0,
         joined: user.date_joined ? new Date(user.date_joined).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         status: user.is_verified ? 'active' : 'pending',
-        is_staff: user.is_staff
+        is_staff: user.is_staff,
       }));
-      
-      console.log('Final formatted users count:', formattedUsers.length);
-      console.log('Formatted users:', formattedUsers);
+
       setUsers(formattedUsers);
-      
-      if (formattedUsers.length === 0) {
-        toast.info('No users found');
-      }
     } catch (error) {
-      console.error('Error fetching users:', error);
-      console.error('Error response:', error.response);
-      console.error('Error message:', error.message);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to load users';
       toast.error(errorMsg);
       setUsers([]);

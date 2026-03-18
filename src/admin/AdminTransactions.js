@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
-import { Search, Download, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Download, Filter, RefreshCw } from 'lucide-react';
+import { adminAuthAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 export default function AdminTransactions() {
-  const [transactions] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+
+  useEffect(() => { fetchTransactions(); }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const response = await adminAuthAPI.getTransactions();
+      setTransactions(response.data.data || response.data.results || []);
+    } catch { toast.error('Failed to load transactions'); }
+    finally { setLoading(false); }
+  };
 
   const filtered = transactions.filter(txn => {
     const s = txn.user?.toLowerCase().includes(searchTerm.toLowerCase()) || txn.reference?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -25,7 +39,10 @@ export default function AdminTransactions() {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Transaction History</h2>
           <p className="text-sm text-gray-500 mt-1">Monitor all platform transactions</p>
         </div>
-        <button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start sm:self-auto">
+        <button onClick={fetchTransactions} disabled={loading} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start sm:self-auto">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </button>
+        <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start sm:self-auto">
           <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>
@@ -74,7 +91,12 @@ export default function AdminTransactions() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 text-sm">
-        No transactions yet. Transactions will appear here.
+        {loading ? (
+          <div className="flex items-center justify-center gap-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+            Loading transactions...
+          </div>
+        ) : transactions.length === 0 ? 'No transactions yet.' : null}
       </div>
     </div>
   );

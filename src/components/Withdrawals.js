@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowUpCircle, Shield, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSettings } from '../contexts/SettingsContext';
+import { binaryOptionsAPI } from '../services/api';
 
 export default function Withdrawals({ balance, onWithdraw }) {
   const { settings } = useSettings();
@@ -9,6 +10,7 @@ export default function Withdrawals({ balance, onWithdraw }) {
   const [amount, setAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [provider, setProvider] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const mobileProviders = [
     { id: 'MTN Mobile Money', name: 'MTN Mobile Money', icon: '📱' },
@@ -53,22 +55,19 @@ export default function Withdrawals({ balance, onWithdraw }) {
       return;
     }
 
-    onWithdraw({
-      amount: amt,
-      method: 'Mobile Money',
-      details: {
-        mobile: { phoneNumber, provider }
-      },
-      date: new Date().toISOString(),
-      reference: `WD-${Date.now()}`
-    });
-
-    // Reset form
-    setAmount('');
-    setPhoneNumber('');
-    setProvider('');
-    
-    toast.success('Withdrawal request submitted successfully!');
+    setSubmitting(true);
+    try {
+      await binaryOptionsAPI.momoWithdrawal(amt, phoneNumber);
+      toast.success('Withdrawal request submitted successfully!');
+      setAmount('');
+      setPhoneNumber('');
+      setProvider('');
+      if (onWithdraw) onWithdraw({ amount: amt });
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to submit withdrawal');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -212,10 +211,10 @@ export default function Withdrawals({ balance, onWithdraw }) {
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > balance || !provider || !phoneNumber}
+            disabled={submitting || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > balance || !provider || !phoneNumber}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-lg transition-colors shadow-md text-base mb-4"
           >
-            Submit Withdrawal
+            {submitting ? 'Submitting...' : 'Submit Withdrawal'}
           </button>
 
           {/* Cancel Button */}

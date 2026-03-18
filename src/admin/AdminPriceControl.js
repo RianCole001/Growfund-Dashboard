@@ -15,14 +15,6 @@ export default function AdminPriceControl() {
   const [newSellPrice, setNewSellPrice] = useState('');
 
   useEffect(() => {
-    const adminPrices = JSON.parse(localStorage.getItem('admin_crypto_prices') || '{}');
-    if (!adminPrices.EXACOIN || !adminPrices.OPTCOIN) {
-      const defaults = {
-        EXACOIN: { price: 62.00, sellPrice: 59.50, lastUpdated: new Date().toISOString() },
-        OPTCOIN: { price: 85.30, sellPrice: 82.74, lastUpdated: new Date().toISOString() },
-      };
-      localStorage.setItem('admin_crypto_prices', JSON.stringify(defaults));
-    }
     loadCurrentPrices();
   }, []);
 
@@ -41,7 +33,6 @@ export default function AdminPriceControl() {
           };
         });
         setPrices(pricesData);
-        localStorage.setItem('admin_crypto_prices', JSON.stringify(pricesData));
       }
     } catch { toast.error('Failed to load prices'); }
     finally { setLoading(false); }
@@ -67,8 +58,6 @@ export default function AdminPriceControl() {
       if (response.data.success) {
         const updated = { ...prices, [coin]: { ...prices[coin], price: response.data.data.buy_price || prices[coin].price, sellPrice: response.data.data.sell_price, change24h: response.data.data.change24h || prices[coin].change24h, lastUpdated: response.data.data.updated_at } };
         setPrices(updated);
-        localStorage.setItem('admin_crypto_prices', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('adminPriceUpdate', { detail: { coin, updatedPrices: updated } }));
         toast.success(`${coin} price updated`);
       }
       cancelEdit();
@@ -81,8 +70,6 @@ export default function AdminPriceControl() {
     const sellPrice = marketPrice * 0.97;
     const updated = { ...prices, [coin]: { ...prices[coin], price: marketPrice, sellPrice, change24h: ((marketPrice - prices[coin].price) / prices[coin].price) * 100, lastUpdated: new Date().toISOString() } };
     setPrices(updated);
-    localStorage.setItem('admin_crypto_prices', JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('adminPriceUpdate', { detail: { coin, updatedPrices: updated } }));
     toast.success(`${coin} reset to market rate`);
   };
 
