@@ -22,7 +22,7 @@ export default function Withdrawals({ balance, onWithdraw }) {
 
   const quickAmounts = [100, 500, 1000, 5000];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const amt = parseFloat(amount);
     
     if (!amount || amt <= 0) {
