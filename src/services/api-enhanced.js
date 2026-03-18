@@ -159,7 +159,7 @@ export const adithdraw/', { amount, method }),
   getCryptoPrices: () => userApi.get('/crypto/prices/'),
   buyCrypto: (data) => userApi.post('/crypto/buy/', data),
   sellCrypto: (data) => userApi.post('/crypto/sell/', data),
-  getCryptoPortfolio: () => userApi.get('/crypto/portfolio/'),
+  getCryptoPortfolio: () => userApi.get('/investments/crypto/portfolio/'),
   
   // Transactions
   getTransactions: () => userApi.get('/transactions/'),

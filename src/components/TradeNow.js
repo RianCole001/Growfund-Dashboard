@@ -68,7 +68,7 @@ export default function TradeNow({ onBalanceUpdate }) {
   const fetchActiveTrades = useCallback(async () => {
     try {
       const res = await binaryOptionsAPI.getActiveTrades({ is_demo: isDemo });
-      const trades = res.data || [];
+      const trades = Array.isArray(res.data) ? res.data : (res.data?.results || res.data?.trades || []);
       setActiveTrades(trades);
       // Start countdowns for any trade that doesn't have one yet
       trades.forEach(t => startCountdown(t));
@@ -285,7 +285,7 @@ export default function TradeNow({ onBalanceUpdate }) {
   };
 
   const currentBalance = isDemo ? balances.demo_balance : balances.real_balance;
-  const selectedAssetObj = assets.find(a => a.symbol === selectedAsset);
+  const selectedAssetObj = Array.isArray(assets) ? assets.find(a => a.symbol === selectedAsset) : null;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">

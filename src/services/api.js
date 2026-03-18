@@ -141,7 +141,7 @@ export const userAuthAPI = {
   buyCrypto: (data) => userApi.post('/investments/crypto/buy/', data),
   sellCrypto: (data) => userApi.post('/investments/crypto/sell/', data),
   getCryptoPrices: () => userApi.get('/investments/crypto/prices/'),
-  getCryptoPortfolio: () => userApi.get('/crypto/portfolio/'),
+  getCryptoPortfolio: () => userApi.get('/investments/crypto/portfolio/'),
   
   // Transactions
   getTransactions: () => userApi.get('/transactions/'),
