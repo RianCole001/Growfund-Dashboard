@@ -108,113 +108,129 @@ export default function TradeNow({ onBalanceUpdate }) {
 
   // ── Chart init ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!chartContainerRef.current || !selectedAsset) return;
-    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
+    if (!selectedAsset) return;
 
-    const container = chartContainerRef.current;
-    const width = container.clientWidth || 800;
-    const height = container.clientHeight || 300;
+    let rafId = null;
+    let resizeObserver = null;
+    let cancelled = false;
 
-    const chart = createChart(container, {
-      width,
-      height,
-      layout: { background: { color: '#111' }, textColor: '#9ca3af' },
-      grid: { vertLines: { color: '#1e1e1e' }, horzLines: { color: '#1e1e1e' } },
-      crosshair: { mode: 1 },
-      rightPriceScale: { borderColor: '#222' },
-      timeScale: { borderColor: '#222', timeVisible: true, secondsVisible: true },
-    });
+    const initChart = () => {
+      const container = chartContainerRef.current;
+      if (!container || cancelled) return;
 
-    // Resize chart when container resizes
-    const resizeObserver = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        const { width: w, height: h } = entry.contentRect;
-        if (chartRef.current && w > 0 && h > 0) {
-          chartRef.current.resize(w, h);
+      // Destroy previous instance
+      if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; seriesRef.current = null; }
+
+      const w = container.clientWidth || container.offsetWidth || 800;
+      const h = 300;
+
+      const chart = createChart(container, {
+        width: w,
+        height: h,
+        layout: { background: { color: '#111827' }, textColor: '#9ca3af' },
+        grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+        crosshair: { mode: 1 },
+        rightPriceScale: { borderColor: '#374151' },
+        timeScale: { borderColor: '#374151', timeVisible: true, secondsVisible: false },
+      });
+
+      resizeObserver = new ResizeObserver(() => {
+        if (chartRef.current && container) {
+          const nw = container.clientWidth || container.offsetWidth;
+          if (nw > 0) chartRef.current.resize(nw, h);
         }
-      }
-    });
-    resizeObserver.observe(container);
+      });
+      resizeObserver.observe(container);
 
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: '#22c55e', downColor: '#ef4444',
-      borderUpColor: '#22c55e', borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e', wickDownColor: '#ef4444',
-    });
+      const series = chart.addSeries(CandlestickSeries, {
+        upColor: '#22c55e', downColor: '#ef4444',
+        borderUpColor: '#22c55e', borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e', wickDownColor: '#ef4444',
+      });
 
-    chartRef.current = chart;
-    seriesRef.current = series;
+      chartRef.current = chart;
+      seriesRef.current = series;
 
-    // Generate synthetic candles as a baseline so the chart is never blank
-    const generateSyntheticCandles = (basePrice, count = 100) => {
-      const now = Math.floor(Date.now() / 1000);
-      const candles = [];
-      let price = basePrice || 100;
-      for (let i = count; i >= 0; i--) {
-        const t = now - i * 60;
-        const change = (Math.random() - 0.48) * price * 0.008;
-        const open = price;
-        const close = Math.max(0.01, price + change);
-        const high = Math.max(open, close) * (1 + Math.random() * 0.003);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.003);
-        candles.push({ time: t, open: parseFloat(open.toFixed(4)), high: parseFloat(high.toFixed(4)), low: parseFloat(low.toFixed(4)), close: parseFloat(close.toFixed(4)) });
-        price = close;
-      }
-      return candles;
-    };
+      // ── helpers ──
+      const parseCandles = (raw) => raw
+        .map(c => ({
+          time: typeof c.time === 'number' ? c.time
+            : Math.floor(new Date(c.time || c.timestamp || 0).getTime() / 1000),
+          open:  parseFloat(c.open),
+          high:  parseFloat(c.high),
+          low:   parseFloat(c.low),
+          close: parseFloat(c.close),
+        }))
+        .filter(c => c.time > 0 && !isNaN(c.open) && !isNaN(c.close));
 
-    // Normalise a raw candle array from any backend response shape
-    const parseCandles = (raw) => raw
-      .map(c => ({
-        time: typeof c.time === 'number' ? c.time : Math.floor(new Date(c.time || c.timestamp).getTime() / 1000),
-        open: parseFloat(c.open),
-        high: parseFloat(c.high),
-        low: parseFloat(c.low),
-        close: parseFloat(c.close),
-      }))
-      .filter(c => c.time > 0 && !isNaN(c.open) && !isNaN(c.close));
+      const syntheticCandles = (base, count = 100) => {
+        const now = Math.floor(Date.now() / 1000);
+        const out = [];
+        let p = base || 100;
+        for (let i = count; i >= 0; i--) {
+          const t = now - i * 60;
+          const chg = (Math.random() - 0.48) * p * 0.008;
+          const o = p, c2 = Math.max(0.01, p + chg);
+          out.push({
+            time: t,
+            open:  parseFloat(o.toFixed(4)),
+            high:  parseFloat((Math.max(o, c2) * (1 + Math.random() * 0.003)).toFixed(4)),
+            low:   parseFloat((Math.min(o, c2) * (1 - Math.random() * 0.003)).toFixed(4)),
+            close: parseFloat(c2.toFixed(4)),
+          });
+          p = c2;
+        }
+        return out;
+      };
 
-    // Load historical candles from backend, fall back to synthetic data
-    const loadChart = async () => {
-      // Fetch current price first so synthetic candles use a realistic base
-      let basePrice = 100;
-      try {
-        const priceRes = await binaryOptionsAPI.getAssetPrice(selectedAsset);
-        const p = priceRes.data?.price ?? priceRes.data?.data?.price ?? priceRes.data;
-        basePrice = parseFloat(p) || 100;
-        setCurrentPrice(basePrice);
-      } catch {}
-
-      let candles = [];
-      try {
-        const res = await binaryOptionsAPI.getChartData(selectedAsset, '1m', 100);
-        // Handle all common response shapes
-        const raw =
-          Array.isArray(res.data) ? res.data :
-          Array.isArray(res.data?.data) ? res.data.data :
-          Array.isArray(res.data?.candles) ? res.data.candles :
-          Array.isArray(res.data?.results) ? res.data.results : [];
-        candles = parseCandles(raw);
-      } catch {}
-
-      if (candles.length > 0) {
-        // Deduplicate and sort ascending (required by lightweight-charts)
+      const setChartData = (candles) => {
+        if (!seriesRef.current || cancelled) return;
         const seen = new Set();
-        const unique = candles.filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
-        unique.sort((a, b) => a.time - b.time);
-        series.setData(unique);
-      } else {
-        // Backend returned no candles — use synthetic data seeded with real price
-        series.setData(generateSyntheticCandles(basePrice, 100));
-      }
-      chart.timeScale().fitContent();
+        const unique = candles
+          .filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; })
+          .sort((a, b) => a.time - b.time);
+        seriesRef.current.setData(unique);
+        chartRef.current?.timeScale().fitContent();
+      };
+
+      // ── load data ──
+      const load = async () => {
+        // 1. Fetch current price
+        let basePrice = 100;
+        try {
+          const pr = await binaryOptionsAPI.getAssetPrice(selectedAsset);
+          const raw = pr.data?.price ?? pr.data?.data?.price ?? pr.data;
+          basePrice = parseFloat(raw) || 100;
+          if (!cancelled) setCurrentPrice(basePrice);
+        } catch {}
+
+        // 2. Fetch candle history
+        try {
+          const cr = await binaryOptionsAPI.getChartData(selectedAsset, '1m', 100);
+          const raw =
+            Array.isArray(cr.data)           ? cr.data :
+            Array.isArray(cr.data?.data)      ? cr.data.data :
+            Array.isArray(cr.data?.candles)   ? cr.data.candles :
+            Array.isArray(cr.data?.results)   ? cr.data.results : [];
+          const candles = parseCandles(raw);
+          if (candles.length > 0) { setChartData(candles); return; }
+        } catch {}
+
+        // 3. Fallback: synthetic candles seeded with real price
+        setChartData(syntheticCandles(basePrice, 100));
+      };
+
+      load();
     };
 
-    loadChart();
+    // Defer one animation frame so the container has real dimensions
+    rafId = requestAnimationFrame(initChart);
 
     return () => {
-      resizeObserver.disconnect();
-      if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
+      cancelled = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (resizeObserver) resizeObserver.disconnect();
+      if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; seriesRef.current = null; }
     };
   }, [selectedAsset]);
 
