@@ -125,6 +125,7 @@ export default function RealEstate({ balance = 0, onInvest = () => {} }) {
     
     const payload = { 
       type: 'real_estate',
+      plan_type: plan.id,   // RE_BASIC, RE_STANDARD, RE_LUXURY
       name: plan.name, 
       amount: Number(amount), 
       months,

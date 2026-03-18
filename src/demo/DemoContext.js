@@ -25,26 +25,42 @@ export const DemoProvider = ({ children }) => {
       setIsDemoMode(true);
       loadDemoData();
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load demo data from backend, fall back to local defaults if endpoints don't exist
+  // Load demo data from backend using new endpoints
   const loadDemoData = async () => {
     try {
       setLoading(true);
-      const [balanceRes, investmentsRes, transactionsRes] = await Promise.all([
-        demoAPI.getDemoBalance().catch(() => null),
-        demoAPI.getDemoInvestments().catch(() => null),
-        demoAPI.getDemoTransactions().catch(() => null),
+
+      // Auto-create account on first call, then fetch portfolio + transactions
+      const [accountRes, portfolioRes, transactionsRes] = await Promise.all([
+        demoAPI.getDemoAccount().catch(() => null),
+        demoAPI.getDemoPortfolio().catch(() => null),
+        demoAPI.getDemoTransactions({ limit: 50 }).catch(() => null),
       ]);
 
-      if (balanceRes?.data?.success) {
-        setDemoBalance(parseFloat(balanceRes.data.data.balance));
+      // Account gives us the balance
+      if (accountRes?.data?.success) {
+        const acct = accountRes.data.data;
+        setDemoBalance(parseFloat(acct.balance || acct.demo_balance || 0));
       }
-      if (investmentsRes?.data?.success) {
-        setDemoInvestments(investmentsRes.data.data);
+
+      // Portfolio gives us investments with live prices
+      if (portfolioRes?.data?.success) {
+        const portfolio = portfolioRes.data.data;
+        // Normalise: portfolio may have { balance, investments, ... }
+        if (portfolio?.balance !== undefined) {
+          setDemoBalance(parseFloat(portfolio.balance));
+        }
+        const investments = portfolio?.investments || portfolio?.holdings || [];
+        setDemoInvestments(Array.isArray(investments) ? investments : []);
       }
+
+      // Transactions
       if (transactionsRes?.data?.success) {
-        setDemoTransactions(transactionsRes.data.data);
+        const txData = transactionsRes.data.data;
+        const txList = Array.isArray(txData) ? txData : (txData?.results || txData?.transactions || []);
+        setDemoTransactions(txList);
       }
     } catch {
       // backend demo endpoints unavailable — keep existing local state
@@ -63,8 +79,6 @@ export const DemoProvider = ({ children }) => {
       // Seed default balance so demo works even without backend
       setDemoBalance(prev => prev > 0 ? prev : 10000);
 
-      // Try to get/create demo account from backend — ignore if unavailable
-      await demoAPI.getDemoAccount().catch(() => null);
       await loadDemoData();
     } catch {
       setDemoBalance(10000);
@@ -80,81 +94,74 @@ export const DemoProvider = ({ children }) => {
     setDemoBalance(0);
     setDemoInvestments([]);
     setDemoTransactions([]);
-    
-    // Clear demo data from localStorage
     localStorage.removeItem('demo_access_token');
     localStorage.removeItem('demo_mode');
   };
 
-  // Demo transaction functions using backend API
   const demoDeposit = async (amount) => {
-    try {
-      const response = await demoAPI.demoDeposit(amount);
-      if (response.data.success) {
-        setDemoBalance(parseFloat(response.data.data.new_balance));
-        await loadDemoData(); // Refresh all data
-        return response.data;
-      }
-      throw new Error(response.data.error || 'Deposit failed');
-    } catch (error) {
-      throw error;
+    const response = await demoAPI.demoDeposit(amount);
+    if (response.data.success) {
+      setDemoBalance(parseFloat(response.data.data.new_balance));
+      await loadDemoData();
+      return response.data;
     }
+    throw new Error(response.data.error || 'Deposit failed');
   };
 
   const demoWithdraw = async (amount) => {
-    try {
-      const response = await demoAPI.demoWithdraw(amount);
-      if (response.data.success) {
-        setDemoBalance(parseFloat(response.data.data.new_balance));
-        await loadDemoData(); // Refresh all data
-        return response.data;
-      }
-      throw new Error(response.data.error || 'Withdrawal failed');
-    } catch (error) {
-      throw error;
+    const response = await demoAPI.demoWithdraw(amount);
+    if (response.data.success) {
+      setDemoBalance(parseFloat(response.data.data.new_balance));
+      await loadDemoData();
+      return response.data;
     }
+    throw new Error(response.data.error || 'Withdrawal failed');
   };
 
   const demoBuyCrypto = async (cryptoData) => {
-    try {
-      const response = await demoAPI.demoBuyCrypto(cryptoData);
-      if (response.data.success) {
-        setDemoBalance(parseFloat(response.data.data.new_balance));
-        await loadDemoData(); // Refresh all data
-        return response.data;
-      }
-      throw new Error(response.data.error || 'Crypto purchase failed');
-    } catch (error) {
-      throw error;
+    // Never send price — backend fetches it server-side
+    const response = await demoAPI.demoBuyCrypto({
+      coin: cryptoData.coin,
+      amount: cryptoData.amount,
+    });
+    if (response.data.success) {
+      setDemoBalance(parseFloat(response.data.data.new_balance));
+      await loadDemoData();
+      return response.data;
     }
+    throw new Error(response.data.error || 'Crypto purchase failed');
   };
 
   const demoSellCrypto = async (sellData) => {
-    try {
-      const response = await demoAPI.demoSellCrypto(sellData);
-      if (response.data.success) {
-        setDemoBalance(parseFloat(response.data.data.new_balance));
-        await loadDemoData(); // Refresh all data
-        return response.data;
-      }
-      throw new Error(response.data.error || 'Crypto sale failed');
-    } catch (error) {
-      throw error;
+    const response = await demoAPI.demoSellCrypto(sellData);
+    if (response.data.success) {
+      setDemoBalance(parseFloat(response.data.data.new_balance));
+      await loadDemoData();
+      return response.data;
     }
+    throw new Error(response.data.error || 'Crypto sale failed');
   };
 
-  const demoInvest = async (investmentData) => {
-    try {
-      const response = await demoAPI.demoInvest(investmentData);
-      if (response.data.success) {
-        setDemoBalance(parseFloat(response.data.data.new_balance));
-        await loadDemoData(); // Refresh all data
-        return response.data;
-      }
-      throw new Error(response.data.error || 'Investment failed');
-    } catch (error) {
-      throw error;
+  // Capital plan investment — uses new /demo/capital-plan/ endpoint
+  const demoCapitalPlan = async (plan_type, amount, months) => {
+    const response = await demoAPI.demoCapitalPlan(plan_type, amount, months);
+    if (response.data.success) {
+      setDemoBalance(parseFloat(response.data.data.new_balance));
+      await loadDemoData();
+      return response.data;
     }
+    throw new Error(response.data.error || 'Capital plan investment failed');
+  };
+
+  // Real estate investment — uses new /demo/real-estate/ endpoint
+  const demoRealEstate = async (property_type, amount) => {
+    const response = await demoAPI.demoRealEstate(property_type, amount);
+    if (response.data.success) {
+      setDemoBalance(parseFloat(response.data.data.new_balance));
+      await loadDemoData();
+      return response.data;
+    }
+    throw new Error(response.data.error || 'Real estate investment failed');
   };
 
   const resetDemoAccount = async () => {
@@ -166,8 +173,6 @@ export const DemoProvider = ({ children }) => {
         return response.data;
       }
       throw new Error(response.data.error || 'Reset failed');
-    } catch (error) {
-      throw error;
     } finally {
       setLoading(false);
     }
@@ -181,22 +186,23 @@ export const DemoProvider = ({ children }) => {
     demoInvestments,
     demoTransactions,
     loading,
-    
+
     // Demo transaction functions
     demoDeposit,
     demoWithdraw,
-    demoInvest,
+    demoCapitalPlan,
+    demoRealEstate,
     demoBuyCrypto,
     demoSellCrypto,
     resetDemoAccount,
-    
+
     // Data refresh
     loadDemoData,
-    
-    // Setters for manual updates (deprecated - use API functions)
+
+    // Setters for manual updates
     setDemoBalance,
     setDemoInvestments,
-    setDemoTransactions
+    setDemoTransactions,
   };
 
   return (

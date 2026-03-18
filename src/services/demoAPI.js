@@ -21,7 +21,19 @@ class DemoAPI {
     return response;
   }
 
-  // Demo transactions
+  // Demo portfolio (replaces getDemoInvestments)
+  async getDemoPortfolio() {
+    const response = await userApi.get('/demo/portfolio/');
+    return response;
+  }
+
+  // Demo transactions — supports limit, offset, type filter
+  async getDemoTransactions(params = {}) {
+    const response = await userApi.get('/demo/transactions/', { params });
+    return response;
+  }
+
+  // Demo deposits/withdrawals
   async demoDeposit(amount) {
     const response = await userApi.post('/demo/deposit/', { amount });
     return response;
@@ -32,12 +44,11 @@ class DemoAPI {
     return response;
   }
 
-  // Demo crypto trading
+  // Demo crypto trading — backend fetches price server-side, never send price from frontend
   async demoBuyCrypto(cryptoData) {
     const response = await userApi.post('/demo/crypto/buy/', {
       coin: cryptoData.coin,
       amount: cryptoData.amount,
-      price: cryptoData.price
     });
     return response;
   }
@@ -51,25 +62,22 @@ class DemoAPI {
     return response;
   }
 
-  // Demo investments
-  async demoInvest(investmentData) {
-    const response = await userApi.post('/demo/invest/', {
-      type: investmentData.type || (investmentData.asset ? 'real_estate' : 'capital_plan'),
-      name: investmentData.name || investmentData.plan || investmentData.asset,
-      amount: investmentData.amount,
-      rate: investmentData.rate || investmentData.monthly_rate,
-      months: investmentData.months || investmentData.duration_months
+  // Demo capital plan investment
+  async demoCapitalPlan(plan_type, amount, months) {
+    const response = await userApi.post('/demo/capital-plan/', {
+      plan_type,
+      amount,
+      months,
     });
     return response;
   }
 
-  async getDemoInvestments() {
-    const response = await userApi.get('/demo/investments/');
-    return response;
-  }
-
-  async getDemoTransactions() {
-    const response = await userApi.get('/demo/transactions/');
+  // Demo real estate investment
+  async demoRealEstate(property_type, amount) {
+    const response = await userApi.post('/demo/real-estate/', {
+      property_type,
+      amount,
+    });
     return response;
   }
 }

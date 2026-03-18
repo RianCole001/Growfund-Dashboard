@@ -49,10 +49,11 @@ export default function App() {
     demoTransactions,
     demoDeposit,
     demoWithdraw,
-    demoInvest,
+    demoCapitalPlan,
+    demoRealEstate,
     demoBuyCrypto,
     demoSellCrypto,
-    disableDemoMode // Add this to clear demo data on logout
+    disableDemoMode
   } = useDemo();
   
   // Auth state - check if user has valid token (real or demo)
@@ -539,20 +540,28 @@ export default function App() {
   };
 
   const handleInvest = async (investmentData) => {
-    try {
-      if (isDemoMode) {
-        await demoInvest(investmentData);
-        addToast(`Demo: Invested $${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
-      } else {
-        // Real investment logic would go here
-        await userAuthAPI.createInvestment(investmentData);
-        addToast(`Invested $${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
+      try {
+        if (isDemoMode) {
+          const type = investmentData.type || '';
+          if (type === 'real_estate') {
+            const propertyType = investmentData.plan_type || investmentData.name || 'RE_BASIC';
+            await demoRealEstate(propertyType, investmentData.amount);
+          } else {
+            // capital_plan (default)
+            const planType = investmentData.plan_type || 'basic';
+            const months = investmentData.months || 6;
+            await demoCapitalPlan(planType, investmentData.amount, months);
+          }
+          addToast(`Demo: Invested ${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
+        } else {
+          await userAuthAPI.createInvestment(investmentData);
+          addToast(`Invested ${parseFloat(investmentData.amount).toFixed(2)} in ${investmentData.plan || investmentData.name}`);
+        }
+      } catch (error) {
+        console.error('Error making investment:', error);
+        addToast(error.message || 'Failed to make investment', 'error');
       }
-    } catch (error) {
-      console.error('Error making investment:', error);
-      addToast(error.message || 'Failed to make investment', 'error');
-    }
-  };
+    };
 
   // If not authenticated, show loading or redirect happens automatically
   if (!isAuthenticated) {
