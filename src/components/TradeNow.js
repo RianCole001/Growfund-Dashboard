@@ -129,18 +129,60 @@ export default function TradeNow({ onBalanceUpdate }) {
     chartRef.current = chart;
     seriesRef.current = series;
 
-    // Load historical candles
-    binaryOptionsAPI.getChartData(selectedAsset, '1m', 100)
-      .then(res => {
-        const candles = (res.data || []).map(c => ({
-          time: c.time, open: c.open, high: c.high, low: c.low, close: c.close,
-        }));
+    // Generate synthetic candles as a baseline so the chart is never blank
+    const generateSyntheticCandles = (basePrice, count = 100) => {
+      const now = Math.floor(Date.now() / 1000);
+      const candles = [];
+      let price = basePrice || 100;
+      for (let i = count; i >= 0; i--) {
+        const t = now - i * 60;
+        const change = (Math.random() - 0.48) * price * 0.008;
+        const open = price;
+        const close = Math.max(0.01, price + change);
+        const high = Math.max(open, close) * (1 + Math.random() * 0.003);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.003);
+        candles.push({ time: t, open: parseFloat(open.toFixed(4)), high: parseFloat(high.toFixed(4)), low: parseFloat(low.toFixed(4)), close: parseFloat(close.toFixed(4)) });
+        price = close;
+      }
+      return candles;
+    };
+
+    // Load historical candles from backend, fall back to synthetic data
+    const loadChart = async () => {
+      // Try to get current price first so synthetic candles use a realistic base
+      let basePrice = 100;
+      try {
+        const priceRes = await binaryOptionsAPI.getAssetPrice(selectedAsset);
+        basePrice = parseFloat(priceRes.data?.price || priceRes.data?.data?.price || 100) || 100;
+        setCurrentPrice(basePrice);
+      } catch {}
+
+      try {
+        const res = await binaryOptionsAPI.getChartData(selectedAsset, '1m', 100);
+        const raw = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.candles || []);
+        const candles = raw.map(c => ({
+          time: typeof c.time === 'number' ? c.time : Math.floor(new Date(c.time).getTime() / 1000),
+          open: parseFloat(c.open),
+          high: parseFloat(c.high),
+          low: parseFloat(c.low),
+          close: parseFloat(c.close),
+        })).filter(c => c.time && !isNaN(c.open));
+
         if (candles.length > 0) {
-          series.setData(candles);
-          chart.timeScale().fitContent();
+          const seen = new Set();
+          const unique = candles.filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+          unique.sort((a, b) => a.time - b.time);
+          series.setData(unique);
+        } else {
+          series.setData(generateSyntheticCandles(basePrice, 100));
         }
-      })
-      .catch(() => {});
+      } catch {
+        series.setData(generateSyntheticCandles(basePrice, 100));
+      }
+      chart.timeScale().fitContent();
+    };
+
+    loadChart();
 
     return () => { if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; } };
   }, [selectedAsset]);
@@ -153,12 +195,16 @@ export default function TradeNow({ onBalanceUpdate }) {
     const poll = async () => {
       try {
         const res = await binaryOptionsAPI.getAssetPrice(selectedAsset);
-        const price = res.data.price;
+        const price = parseFloat(res.data?.price || res.data?.data?.price || 0);
+        if (!price) return;
         setCurrentPrice(price);
         // Update chart with latest tick
         if (seriesRef.current) {
+          const now = Math.floor(Date.now() / 1000);
+          // Round to nearest minute so ticks aggregate into candles
+          const candleTime = now - (now % 60);
           seriesRef.current.update({
-            time: Math.floor(Date.now() / 1000),
+            time: candleTime,
             open: price, high: price, low: price, close: price,
           });
         }
