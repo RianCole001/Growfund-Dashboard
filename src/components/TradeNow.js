@@ -111,14 +111,30 @@ export default function TradeNow({ onBalanceUpdate }) {
     if (!chartContainerRef.current || !selectedAsset) return;
     if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
 
-    const chart = createChart(chartContainerRef.current, {
+    const container = chartContainerRef.current;
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 300;
+
+    const chart = createChart(container, {
+      width,
+      height,
       layout: { background: { color: '#111' }, textColor: '#9ca3af' },
       grid: { vertLines: { color: '#1e1e1e' }, horzLines: { color: '#1e1e1e' } },
       crosshair: { mode: 1 },
       rightPriceScale: { borderColor: '#222' },
       timeScale: { borderColor: '#222', timeVisible: true, secondsVisible: true },
-      autoSize: true,
     });
+
+    // Resize chart when container resizes
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width: w, height: h } = entry.contentRect;
+        if (chartRef.current && w > 0 && h > 0) {
+          chartRef.current.resize(w, h);
+        }
+      }
+    });
+    resizeObserver.observe(container);
 
     const series = chart.addSeries(CandlestickSeries, {
       upColor: '#22c55e', downColor: '#ef4444',
@@ -147,36 +163,48 @@ export default function TradeNow({ onBalanceUpdate }) {
       return candles;
     };
 
+    // Normalise a raw candle array from any backend response shape
+    const parseCandles = (raw) => raw
+      .map(c => ({
+        time: typeof c.time === 'number' ? c.time : Math.floor(new Date(c.time || c.timestamp).getTime() / 1000),
+        open: parseFloat(c.open),
+        high: parseFloat(c.high),
+        low: parseFloat(c.low),
+        close: parseFloat(c.close),
+      }))
+      .filter(c => c.time > 0 && !isNaN(c.open) && !isNaN(c.close));
+
     // Load historical candles from backend, fall back to synthetic data
     const loadChart = async () => {
-      // Try to get current price first so synthetic candles use a realistic base
+      // Fetch current price first so synthetic candles use a realistic base
       let basePrice = 100;
       try {
         const priceRes = await binaryOptionsAPI.getAssetPrice(selectedAsset);
-        basePrice = parseFloat(priceRes.data?.price || priceRes.data?.data?.price || 100) || 100;
+        const p = priceRes.data?.price ?? priceRes.data?.data?.price ?? priceRes.data;
+        basePrice = parseFloat(p) || 100;
         setCurrentPrice(basePrice);
       } catch {}
 
+      let candles = [];
       try {
         const res = await binaryOptionsAPI.getChartData(selectedAsset, '1m', 100);
-        const raw = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.candles || []);
-        const candles = raw.map(c => ({
-          time: typeof c.time === 'number' ? c.time : Math.floor(new Date(c.time).getTime() / 1000),
-          open: parseFloat(c.open),
-          high: parseFloat(c.high),
-          low: parseFloat(c.low),
-          close: parseFloat(c.close),
-        })).filter(c => c.time && !isNaN(c.open));
+        // Handle all common response shapes
+        const raw =
+          Array.isArray(res.data) ? res.data :
+          Array.isArray(res.data?.data) ? res.data.data :
+          Array.isArray(res.data?.candles) ? res.data.candles :
+          Array.isArray(res.data?.results) ? res.data.results : [];
+        candles = parseCandles(raw);
+      } catch {}
 
-        if (candles.length > 0) {
-          const seen = new Set();
-          const unique = candles.filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
-          unique.sort((a, b) => a.time - b.time);
-          series.setData(unique);
-        } else {
-          series.setData(generateSyntheticCandles(basePrice, 100));
-        }
-      } catch {
+      if (candles.length > 0) {
+        // Deduplicate and sort ascending (required by lightweight-charts)
+        const seen = new Set();
+        const unique = candles.filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+        unique.sort((a, b) => a.time - b.time);
+        series.setData(unique);
+      } else {
+        // Backend returned no candles — use synthetic data seeded with real price
         series.setData(generateSyntheticCandles(basePrice, 100));
       }
       chart.timeScale().fitContent();
@@ -184,7 +212,10 @@ export default function TradeNow({ onBalanceUpdate }) {
 
     loadChart();
 
-    return () => { if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; } };
+    return () => {
+      resizeObserver.disconnect();
+      if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
+    };
   }, [selectedAsset]);
 
   // ── Price polling ───────────────────────────────────────────────────────────
@@ -398,7 +429,7 @@ export default function TradeNow({ onBalanceUpdate }) {
       </div>
 
       {/* Chart */}
-      <div ref={chartContainerRef} className="w-full" style={{ height: 260 }} />
+      <div ref={chartContainerRef} className="w-full bg-gray-900" style={{ height: 300 }} />
 
       {/* Trade controls */}
       <div className="bg-gray-800 border-t border-gray-700 p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
