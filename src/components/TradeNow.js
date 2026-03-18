@@ -47,7 +47,7 @@ export default function TradeNow({ onBalanceUpdate }) {
   useEffect(() => {
     binaryOptionsAPI.getAssets()
       .then(res => {
-        const list = res.data || [];
+        const list = Array.isArray(res.data) ? res.data : (res.data?.results || res.data?.data || []);
         setAssets(list);
         if (list.length > 0 && !selectedAsset) setSelectedAsset(list[0].symbol);
       })
@@ -71,7 +71,7 @@ export default function TradeNow({ onBalanceUpdate }) {
       const trades = Array.isArray(res.data) ? res.data : (res.data?.results || res.data?.trades || []);
       setActiveTrades(trades);
       // Start countdowns for any trade that doesn't have one yet
-      trades.forEach(t => startCountdown(t));
+      (Array.isArray(trades) ? trades : []).forEach(t => startCountdown(t));
     } catch (e) {
       console.error('Failed to fetch active trades', e);
     }
@@ -81,7 +81,7 @@ export default function TradeNow({ onBalanceUpdate }) {
   const fetchHistory = useCallback(async () => {
     try {
       const res = await binaryOptionsAPI.getTradeHistory({ is_demo: isDemo, limit: 50, offset: 0 });
-      setTradeHistory(res.data.results || res.data.trades || []);
+      setTradeHistory(Array.isArray(res.data) ? res.data : (res.data?.results || res.data?.trades || []));
       if (res.data.summary) setHistorySummary(res.data.summary);
     } catch (e) {
       console.error('Failed to fetch history', e);
@@ -319,7 +319,7 @@ export default function TradeNow({ onBalanceUpdate }) {
             onChange={e => setSelectedAsset(e.target.value)}
             className="bg-gray-700 text-white rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-500"
           >
-            {assets.map(a => (
+            {(Array.isArray(assets) ? assets : []).map(a => (
               <option key={a.symbol} value={a.symbol}>{a.symbol} — {a.name}</option>
             ))}
           </select>
@@ -437,7 +437,7 @@ export default function TradeNow({ onBalanceUpdate }) {
             {activeTrades.length === 0 && (
               <div className="text-center text-gray-500 py-12">No active trades. Open one above.</div>
             )}
-            {activeTrades.map(trade => (
+            {(Array.isArray(activeTrades) ? activeTrades : []).map(trade => (
               <div key={trade.id} className={`bg-gray-800 rounded-xl p-4 border ${
                 trade.direction === 'buy' ? 'border-green-700' : 'border-red-700'
               }`}>
@@ -501,7 +501,7 @@ export default function TradeNow({ onBalanceUpdate }) {
             {tradeHistory.length === 0 && (
               <div className="text-center text-gray-500 py-12">No trade history yet.</div>
             )}
-            {tradeHistory.map(trade => (
+            {(Array.isArray(tradeHistory) ? tradeHistory : []).map(trade => (
               <div key={trade.id} className={`bg-gray-800 rounded-xl p-4 border ${
                 trade.status === 'won' ? 'border-green-800' : trade.status === 'lost' ? 'border-red-800' : 'border-gray-700'
               }`}>
